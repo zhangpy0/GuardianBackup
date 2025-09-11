@@ -7,16 +7,15 @@ import top.zhangpy.guardianbackup.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityMainBinding
+//    private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        // Example of a call to a native method
-        binding.sampleText.text = stringFromJNI()
+        val mainView = layoutInflater.inflate(R.layout.activity_main, null)
+        setContentView(mainView)
+        val tv: TextView = findViewById(R.id.sample_text)
+        tv.text = stringFromJNI()
     }
 
     /**
