@@ -14,7 +14,29 @@ data class BackupRequest(
     val destinationFile: File,
     val password: CharArray,
     val progressCallback: (String, Int, Int) -> Unit = { _, _, _ -> }
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as BackupRequest
+
+        if (sourcePaths != other.sourcePaths) return false
+        if (destinationFile != other.destinationFile) return false
+        if (!password.contentEquals(other.password)) return false
+        if (progressCallback != other.progressCallback) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = sourcePaths.hashCode()
+        result = 31 * result + destinationFile.hashCode()
+        result = 31 * result + password.contentHashCode()
+        result = 31 * result + progressCallback.hashCode()
+        return result
+    }
+}
 
 /**
  * 恢复操作的结果
