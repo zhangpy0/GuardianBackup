@@ -93,11 +93,11 @@ class FileSystemSource(private val context: Context) {
 
         // 2. 创建一个临时的、未加密的 zip 文件
         val tempZipFile = File.createTempFile("backup_unencrypted", ".zip", context.cacheDir)
-        val manifest: BackupManifest
+        //val manifest: BackupManifest
 
         try {
             // 3. 压缩文件并生成元数据清单
-            manifest = createZipArchiveWithManifest(allFiles, tempZipFile) { fileName, current, total ->
+            val manifest = createZipArchiveWithManifest(allFiles, tempZipFile) { fileName, current, total ->
                 request.progressCallback(fileName, current, total)
             }
 
