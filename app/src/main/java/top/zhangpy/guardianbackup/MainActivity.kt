@@ -3,7 +3,7 @@ package top.zhangpy.guardianbackup
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.TextView
-import top.zhangpy.guardianbackup.databinding.ActivityMainBinding
+import top.zhangpy.guardianbackup.core.data.system.ContentResolverSource
 
 class MainActivity : AppCompatActivity() {
 
