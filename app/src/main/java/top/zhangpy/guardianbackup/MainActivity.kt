@@ -10,6 +10,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import top.zhangpy.guardianbackup.core.data.system.ContentResolverSource
+import top.zhangpy.guardianbackup.core.data.system.FileSystemSource
+import java.io.File
 import kotlin.contracts.contract
 
 class MainActivity : AppCompatActivity() {
@@ -60,6 +62,15 @@ class MainActivity : AppCompatActivity() {
         val mainView = layoutInflater.inflate(R.layout.activity_main, null)
         setContentView(mainView)
         val tv: TextView = findViewById(R.id.sample_text)
+        val externalCacheDir = externalCacheDir
+        val contentResolverSource = ContentResolverSource(this)
+        val fileSystemSource = FileSystemSource(this)
+
+        if (externalCacheDir == null) {
+            Log.e("test", "外部缓存目录不可用")
+        }
+        val jsonF = File(externalCacheDir, "test.json")
+        val vcfF = File(externalCacheDir,"test.vcf")
         //tv.text = stringFromJNI()
 //        requestAllPermissionsAtOnce()
         // 初始化权限管理器，传入application context
@@ -67,6 +78,8 @@ class MainActivity : AppCompatActivity() {
 
         // 请求权限
         requestPermissions()
+        contentResolverSource.saveContactsAsJson(jsonF)
+        contentResolverSource.saveContactsAsVcf(vcfF)
     }
 
     private fun requestPermissions() {
