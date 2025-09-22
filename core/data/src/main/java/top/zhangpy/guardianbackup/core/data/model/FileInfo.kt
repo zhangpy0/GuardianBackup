@@ -1,5 +1,6 @@
 package top.zhangpy.guardianbackup.core.data.model
 
+import android.net.Uri
 import java.io.File
 
 /**
@@ -10,7 +11,9 @@ import java.io.File
  * @param progressCallback 一个回调函数，用于报告备份进度 (当前处理的文件名, 当前文件索引, 总文件数)
  */
 data class BackupRequest(
+    val sourceUris: List<Uri>,
     val sourcePaths: List<File>,
+    val destinationUri: Uri,
     val destinationFile: File,
     val password: CharArray,
     val progressCallback: (String, Int, Int) -> Unit = { _, _, _ -> }
