@@ -166,4 +166,8 @@ class FileSystemSource(private val context: Context) {
     fun listFilesWithRelativePaths(baseUri: Uri): Map<Uri, String> {
         return fileRepository.listFilesWithRelativePaths(baseUri)
     }
+
+    fun listFilesWithRelativePaths(baseUri: Uri, regex: Regex): Map<Uri, String> {
+        return fileRepository.listFilesWithRelativePaths(baseUri, regex)
+    }
 }
