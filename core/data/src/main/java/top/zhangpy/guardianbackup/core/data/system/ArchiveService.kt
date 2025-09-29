@@ -44,7 +44,7 @@ class ArchiveService(
         filesMap: Map<Uri, String>,
         zipFile: File,
         progressCallback: (String, Int, Int) -> Unit
-    ) {
+    ) : BackupManifest {
         val metadataList = mutableListOf<FileMetadata>()
         val filesToProcess = filesMap.entries.toList() // 转换为 List 以便使用索引
 
@@ -78,6 +78,7 @@ class ArchiveService(
             zos.putNextEntry(ZipEntry(MANIFEST_FILENAME))
             zos.write(gson.toJson(manifest).toByteArray())
             zos.closeEntry()
+            return manifest
         }
     }
 

@@ -47,17 +47,34 @@ class FileRepository(private val context: Context) {
         return fileMap
     }
 
+    /**
+     * 【已修改】递归地列出给定根目录下所有文件，并返回一个包含每个文件 Uri 及其相对路径的 Map。
+     * 新增功能：只包含文件名与给定正则表达式匹配的文件。
+     *
+     * @param baseUri 要开始遍历的根目录（或单个文件）的 Uri。
+     * @param regex 用于过滤文件名的正则表达式。
+     * @return 一个 Map，其中键是文件的 Uri，值是该文件相对于 baseUri 的路径字符串。
+     */
     fun listFilesWithRelativePaths(baseUri: Uri, regex: Regex): Map<Uri, String> {
         val baseDocFile = DocumentFile.fromTreeUri(context, baseUri)
-            ?: DocumentFile.fromSingleUri(context, baseUri)
+            ?: DocumentFile.fromSingleUri(context, baseUri) // 同样支持选择单个文件
             ?: return emptyMap()
 
         val fileMap = mutableMapOf<Uri, String>()
+
         if (baseDocFile.isDirectory) {
-            recursiveListHelper(baseDocFile, "", fileMap)
+            // 如果是目录，启动递归辅助函数，并将 regex 传递下去
+            recursiveListHelper(baseDocFile, "", fileMap, regex)
         } else {
-            baseDocFile.name?.let { fileMap[baseDocFile.uri] = it }
+            // 如果用户只选择了一个文件，同样需要用 regex 进行检查
+            baseDocFile.name?.let { fileName ->
+                if (regex.matches(fileName)) {
+                    // 文件名匹配，则添加到 map 中
+                    fileMap[baseDocFile.uri] = fileName
+                }
+            }
         }
+
         return fileMap
     }
 
@@ -195,6 +212,44 @@ class FileRepository(private val context: Context) {
             } else {
                 // 如果是文件，将其 Uri 和计算出的相对路径存入 Map
                 fileMap[file.uri] = nextRelativePath
+            }
+        }
+    }
+
+    /**
+     * `listFilesWithRelativePaths` 的递归辅助函数。
+     *
+     * @param currentDirectory 当前正在遍历的目录的 DocumentFile。
+     * @param currentRelativePath 从根目录到 currentDirectory 的路径。
+     * @param fileMap 用于累积结果的 Map。
+     * @param regex 用于过滤文件名的正则表达式。
+     */
+    private fun recursiveListHelper(
+        currentDirectory: DocumentFile,
+        currentRelativePath: String,
+        fileMap: MutableMap<Uri, String>,
+        regex: Regex // 接收 regex 参数
+    ) {
+        // 遍历当前目录下的所有文件和子目录
+        for (file in currentDirectory.listFiles()) {
+            val fileName = file.name ?: continue // 如果文件名为空则跳过
+
+            // 构建下一级的相对路径
+            val nextRelativePath = if (currentRelativePath.isEmpty()) {
+                fileName
+            } else {
+                "$currentRelativePath/$fileName"
+            }
+
+            if (file.isDirectory) {
+                // 如果是目录，继续向下一层递归
+                recursiveListHelper(file, nextRelativePath, fileMap, regex)
+            } else {
+                // 【核心修改】如果是文件，先检查文件名是否匹配正则表达式
+                if (regex.matches(fileName)) {
+                    // 如果匹配，才将其 Uri 和计算出的相对路径存入 Map
+                    fileMap[file.uri] = nextRelativePath
+                }
             }
         }
     }
