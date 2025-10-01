@@ -1,13 +1,16 @@
 package top.zhangpy.guardianbackup.core.data
 
+import android.Manifest
 import android.util.Log
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.rule.GrantPermissionRule
 
 import org.junit.Test
 import org.junit.runner.RunWith
 
 import org.junit.Assert.*
+import org.junit.Rule
 import top.zhangpy.guardianbackup.core.data.system.ContentResolverSource
 
 //import androidx.test.rule.GrantPermissionRule
@@ -21,10 +24,10 @@ import top.zhangpy.guardianbackup.core.data.system.ContentResolverSource
  */
 @RunWith(AndroidJUnit4::class)
 class ExampleInstrumentedTest {
-//    @get:Rule
-//    val grantPermissionRule: GrantPermissionRule = GrantPermissionRule.grant(
-//        Manifest.permission.READ_SMS
-//    )
+    @get:Rule
+    val grantPermissionRule: GrantPermissionRule = GrantPermissionRule.grant(
+        Manifest.permission.READ_SMS
+    )
     @Test
     fun useAppContext() {
         // Context of the app under test.
