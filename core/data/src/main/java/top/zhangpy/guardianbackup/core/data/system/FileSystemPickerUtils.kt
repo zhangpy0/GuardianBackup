@@ -17,7 +17,7 @@ import androidx.core.content.edit
  * 3. 使用 SharedPreferences 持久化存储和加载目录 URI。
  * 4. 提供一个使用 DocumentFile 与所选目录内容交互的示例方法。
  */
-object DirectoryPickerUtils {
+object FileSystemPickerUtils {
 
     private const val PREFS_NAME = "DirectoryPickerPrefs"
     private const val KEY_DIRECTORY_URI = "directoryUri"
@@ -29,6 +29,21 @@ object DirectoryPickerUtils {
      */
     fun createDirectoryPickerIntent(): Intent {
         return Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+    }
+
+    fun createFilePickerIntent(mimeTypes: Array<String>? = null): Intent {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = if (mimeTypes != null && mimeTypes.size == 1) {
+                mimeTypes[0]
+            } else {
+                "*/*" // 支持多种类型时，使用通配符
+            }
+            if (mimeTypes != null && mimeTypes.size > 1) {
+                putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes)
+            }
+        }
+        return intent
     }
 
     /**
@@ -64,6 +79,33 @@ object DirectoryPickerUtils {
             }
         } else {
             Log.w(TAG, "用户取消了目录选择")
+        }
+    }
+
+    fun handleFilePickerResult(
+        context: Context,
+        resultCode: Int,
+        data: Intent?,
+        onFileSelected: (uri: Uri) -> Unit
+    ) {
+        if (resultCode == Activity.RESULT_OK) {
+            val uri: Uri? = data?.data
+            if (uri != null) {
+                // 获取持久化权限
+                val contentResolver = context.applicationContext.contentResolver
+                val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                try {
+                    contentResolver.takePersistableUriPermission(uri, takeFlags)
+                    Log.d(TAG, "成功获取文件的持久化权限: $uri")
+                    // 通过回调返回成功的 URI
+                    onFileSelected(uri)
+                } catch (e: SecurityException) {
+                    Log.e(TAG, "获取持久化权限失败", e)
+                }
+            }
+        } else {
+            Log.w(TAG, "用户取消了文件选择")
         }
     }
 
@@ -119,5 +161,14 @@ object DirectoryPickerUtils {
             return emptyList()
         }
         return directory.listFiles().toList()
+    }
+
+    fun createFileInDirectory(context: Context, directoryUri: Uri, fileName: String, mimeType: String): Uri? {
+        val directory = DocumentFile.fromTreeUri(context, directoryUri)
+        if (directory == null || !directory.isDirectory || !directory.canWrite()) {
+            Log.w(TAG, "提供的 URI 不是一个有效的目录")
+            throw IllegalArgumentException("Invalid directory URI or no write permission")
+        }
+        return directory.createFile(mimeType, fileName)?.uri
     }
 }

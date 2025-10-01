@@ -27,26 +27,8 @@ class FileSystemSource(private val context: Context) {
 
     private val fileRepository = FileRepository(context)
     private val integrityService = IntegrityService(fileRepository)
-    private val encryptionService = EncryptionService(fileRepository)
+    private val encryptionService : IEncryptionService = EncryptionCBCStreamService(fileRepository)
     private val archiveService = ArchiveService(context, fileRepository, integrityService)
-
-    companion object {
-        private const val MANIFEST_FILENAME = "manifest.json"
-        private const val BUFFER_SIZE = 8192
-        private const val SALT_SIZE = 16
-        private const val IV_SIZE = 12 // AES/GCM standard IV size is 12 bytes
-        private const val PBE_ITERATION_COUNT = 65536
-        private const val AES_KEY_SIZE = 256
-        private const val GCM_tag_LENGTH = 128
-    }
-
-    // =================================================================================
-    // Public API - 文件发现
-    // =================================================================================
-
-    // =================================================================================
-    // Public API - 备份与恢复
-    // =================================================================================
 
     /**
      * 【已修改】执行备份操作。

@@ -1,23 +1,20 @@
 package top.zhangpy.guardianbackup
 
-import android.Manifest
-import android.content.pm.PackageManager
+import PermissionManager
 import android.net.Uri
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
-import androidx.core.content.ContextCompat
+import androidx.appcompat.app.AppCompatActivity
 import androidx.documentfile.provider.DocumentFile
+import kotlinx.coroutines.launch
 import top.zhangpy.guardianbackup.core.data.system.ContentResolverSource
-import top.zhangpy.guardianbackup.core.data.system.DirectoryPickerUtils
+import top.zhangpy.guardianbackup.core.data.system.FileSystemPickerUtils
 import top.zhangpy.guardianbackup.core.data.system.FileSystemSource
 import java.io.File
-import kotlin.contracts.contract
 
 class MainActivity : AppCompatActivity() {
 
@@ -64,29 +61,100 @@ class MainActivity : AppCompatActivity() {
     private var selectedDirectoryUri: Uri? = null
     lateinit var fileSystemSource: FileSystemSource
 
-    // Activity 仍然需要持有 ActivityResultLauncher
-    private val directoryPickerLauncher = registerForActivityResult(
+    // 加密测试
+//    private val directoryPickerLauncher = registerForActivityResult(
+//        ActivityResultContracts.StartActivityForResult()
+//    ) { result ->
+//        // 将结果交给工具类处理
+//        DirectoryPickerUtils.handleDirectoryPickerResult(this, result.resultCode, result.data) { uri ->
+//            // 这是选择成功后的回调
+//            Log.i("MainActivity", "目录选择成功: $uri")
+//            Log.i("MainActivity", "目录路径: ${uri.path}")
+//            Log.i("MainActivity", "URI Scheme: ${uri.scheme}")
+//            val file = DocumentFile.fromTreeUri(this, uri)
+//            if (file == null || !file.canRead() || !file.canWrite()) {
+//                Toast.makeText(this, "无法读取或写入所选目录，请选择其他目录", Toast.LENGTH_LONG).show()
+//                return@handleDirectoryPickerResult
+//            }
+//            selectedDirectoryUri = uri
+//            tvSelectedDirectory.text = "已选目录:\n${uri.path}"
+//            val filesMap = fileSystemSource.listFilesWithRelativePaths(uri)
+//            val desFile = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+//
+//            val timeStamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault()).format(java.util.Date())
+//            val fileName = "${file.name}_backup_${timeStamp}.dat"
+//
+//            // 直接使用 java.io.File 来创建文件对象
+//            // desFile 是 getExternalFilesDir 返回的父目录 File 对象
+//            val destinationFile = File(desFile, fileName)
+//
+//            val uri: Uri // 先声明 Uri 变量
+//
+//            try {
+//                // createNewFile() 会真正在文件系统上创建这个文件
+//                // 如果文件已存在，它会返回 false
+//                if (destinationFile.createNewFile()) {
+//                    // 文件创建成功，将 File 对象转换为 Uri
+//                    // 注意：对于较新的 Android 版本，你可能需要通过 FileProvider 来获取 content:// Uri
+//                    // 但对于传递给应用内部逻辑，File Uri 通常也可用。为了更好的兼容性，推荐 FileProvider。
+//                    // 这里为了简单，我们先用 Uri.fromFile
+//                    uri = Uri.fromFile(destinationFile)
+//                    Log.i("MainActivity", "备份文件已成功创建: $uri")
+//                } else {
+//                    Toast.makeText(this, "创建失败，文件可能已存在", Toast.LENGTH_LONG).show()
+//                    return@handleDirectoryPickerResult
+//                }
+//            } catch (e: java.io.IOException) {
+//                // 捕获可能发生的 I/O 异常
+//                Log.e("MainActivity", "创建备份文件时发生 IO 异常", e)
+//                Toast.makeText(this, "创建备份文件失败: ${e.message}", Toast.LENGTH_LONG).show()
+//                return@handleDirectoryPickerResult
+//            }
+//
+//            Log.i("MainActivity", "备份文件将保存到: $uri")
+//
+//            val backupRequestBuilder : BackupRequestBuilder = BackupRequestBuilder(this)
+//                .sourceUrisAndPath(filesMap)
+//                .destinationUri(uri)
+//                .zip(true)
+//                .encrypt("AES","123".toCharArray())
+//                .onProgress { fileName, current, total ->
+//                    Log.d("MainActivity","正在处理文件 $fileName 进度: $current/$total")
+//                }
+//            val backupRequest = backupRequestBuilder.build()
+//            lifecycleScope.launch {
+//                val success = withContext(Dispatchers.IO) {
+//                    backupRequest.execute()
+//                }
+//                if (success) {
+//                    Log.i("MainActivity", "备份完成")
+//                } else {
+//                    Log.e("MainActivity", "备份失败")
+//                }
+//            }
+////            val backupRequest = fileSystemSource.createBackupRequest()
+////            fileSystemSource.backup()
+//            // 2. 将 URI 保存起来供下次使用
+//            DirectoryPickerUtils.saveDirectoryUri(this, uri)
+//
+//            Toast.makeText(this, "已选择目录", Toast.LENGTH_SHORT).show()
+//        }
+//    }
+
+    private val filePickerLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        // 将结果交给工具类处理
-        DirectoryPickerUtils.handleDirectoryPickerResult(this, result.resultCode, result.data) { uri ->
+        FileSystemPickerUtils.handleFilePickerResult(this, result.resultCode, result.data) { uri ->
             // 这是选择成功后的回调
-            Log.i("MainActivity", "目录选择成功: $uri")
-            Log.i("MainActivity", "目录路径: ${uri.path}")
+            Log.i("MainActivity", "文件选择成功: $uri")
+            Log.i("MainActivity", "文件路径: ${uri.path}")
             Log.i("MainActivity", "URI Scheme: ${uri.scheme}")
-            val file = DocumentFile.fromTreeUri(this, uri)
-            if (file == null || !file.canRead() || !file.canWrite()) {
-                Toast.makeText(this, "无法读取或写入所选目录，请选择其他目录", Toast.LENGTH_LONG).show()
-                return@handleDirectoryPickerResult
+            val file = DocumentFile.fromSingleUri(this, uri)
+            if (file == null || !file.canRead()) {
+                Toast.makeText(this, "无法读取所选文件，请选择其他文件", Toast.LENGTH_LONG).show()
+                return@handleFilePickerResult
             }
-            selectedDirectoryUri = uri
-            tvSelectedDirectory.text = "已选目录:\n${uri.path}"
-//            val backupRequest = fileSystemSource.createBackupRequest()
-//            fileSystemSource.backup()
-            // 2. 将 URI 保存起来供下次使用
-            DirectoryPickerUtils.saveDirectoryUri(this, uri)
-
-            Toast.makeText(this, "已选择目录", Toast.LENGTH_SHORT).show()
+            // todo 恢复
         }
     }
     
@@ -116,16 +184,25 @@ class MainActivity : AppCompatActivity() {
         requestPermissions()
 //        contentResolverSource.saveContactsAsJson(jsonF)
 //        contentResolverSource.saveContactsAsVcf(vcfF)
+
+        // 加密测试
+//        btnSelectDirectory.setOnClickListener {
+//            // 从工具类获取 Intent 并启动
+//            val intent = FileSystemPickerUtils.createDirectoryPickerIntent()
+//            directoryPickerLauncher.launch(intent)
+//        }
+
+        // 解密测试
         btnSelectDirectory.setOnClickListener {
             // 从工具类获取 Intent 并启动
-            val intent = DirectoryPickerUtils.createDirectoryPickerIntent()
-            directoryPickerLauncher.launch(intent)
+            val intent = FileSystemPickerUtils.createFilePickerIntent(arrayOf("application/octet-stream"))
+            filePickerLauncher.launch(intent)
         }
 
         btnListFiles.setOnClickListener {
             if (selectedDirectoryUri != null) {
                 // 使用工具类列出文件
-                val files = DirectoryPickerUtils.listFilesInDirectory(this, selectedDirectoryUri!!)
+                val files = FileSystemPickerUtils.listFilesInDirectory(this, selectedDirectoryUri!!)
 
                 if (files.isEmpty()) {
                     Toast.makeText(this, "目录为空或无法读取", Toast.LENGTH_SHORT).show()
