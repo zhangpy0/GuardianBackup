@@ -2,8 +2,11 @@ package top.zhangpy.guardianbackup.core.data.system
 
 import android.content.ContentResolver
 import android.content.ContentUris
+import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
+import android.os.Environment.DIRECTORY_DOWNLOADS
+import android.os.Environment.getExternalStoragePublicDirectory
 import android.provider.MediaStore
 import android.provider.OpenableColumns
 import android.util.Log
@@ -166,6 +169,119 @@ class FileRepository(private val context: Context) {
             }
         }
         return currentDir
+    }
+
+    fun getNewFileUriInDownloads(fileName: String, mimeType: String = "application/octet-stream"): Uri? {
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+            put(MediaStore.Downloads.MIME_TYPE, mimeType)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                put(MediaStore.Downloads.RELATIVE_PATH, "Download/GuardianBackup/")
+                put(MediaStore.Downloads.IS_PENDING, 1) // 标记为正在创建
+            }
+        }
+
+        var uri: Uri? = null
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                // 对于 Android 10 及以上版本，使用 MediaStore API
+                uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                if (uri == null) {
+                    Log.e(tag, "Failed to create new file in Downloads: $fileName")
+                    return null
+                } else {
+                    Log.d(tag, "Created new file URI in Downloads: $uri")
+                }
+                // 创建完成后，更新 IS_PENDING 状态
+                contentValues.clear()
+                contentValues.put(MediaStore.Downloads.IS_PENDING, 0)
+                contentResolver.update(uri, contentValues, null, null)
+            } else {
+                // 对于 Android 9 及以下版本，直接创建在 Download 目录
+                val downloadsDir = getExternalStoragePublicDirectory(DIRECTORY_DOWNLOADS)
+                val guardianDir = File(downloadsDir, "GuardianBackup")
+                if (!guardianDir.exists()) {
+                    if (!guardianDir.mkdirs()) {
+                        Log.e(tag, "Failed to create GuardianBackup directory in Downloads")
+                        return null
+                    }
+                }
+                val newFile = File(guardianDir, fileName)
+                if (newFile.exists()) {
+                    Log.w(tag, "File already exists and will be overwritten: ${newFile.absolutePath}")
+                    // 如果文件已存在，可以选择删除或覆盖
+                    if (!newFile.delete()) {
+                        Log.e(tag, "Failed to delete existing file: ${newFile.absolutePath}")
+                        return null
+                    }
+                }
+                uri = Uri.fromFile(newFile)
+                Log.d(tag, "Created new file URI in Downloads: $uri")
+            }
+        } catch (e: Exception) {
+            Log.e(tag, "Error creating new file in Downloads", e)
+            uri = null
+        }
+        return uri
+    }
+
+    /**
+     * 在给定的父 DocumentFile 目录下创建一个新的子目录。
+     *
+     * @param context Context 对象。
+     * @param parentDirectoryUri 代表父目录的 DocumentFile 对象 Uri。
+     * @param newDirectoryName 要创建的新目录的名称。
+     * @return 如果成功创建或目录已存在，则返回新目录的 Uri；如果失败，则返回 null。
+     */
+    fun createSubDirectory(
+        parentDirectoryUri: Uri,
+        newDirectoryName: String
+    ): Uri? {
+        val parentDirectory = DocumentFile.fromTreeUri(context, parentDirectoryUri)
+            ?: run {
+                Log.e(tag, "无法解析 parentDirectoryUri: $parentDirectoryUri")
+                return null
+            }
+        // 1. 前置检查：确保父目录有效且可写
+        if (!parentDirectory.isDirectory) {
+            Log.e(tag, "提供的 parentDirectory 不是一个目录")
+            return null
+        }
+        if (!parentDirectory.canWrite()) {
+            Log.e(tag, "没有写入权限: ${parentDirectory.uri}")
+            return null
+        }
+        if (newDirectoryName.isBlank()) {
+            Log.e(tag, "新目录名称不能为空")
+            return null
+        }
+
+        // 2. 检查同名文件或目录是否已存在
+        val existingEntry = parentDirectory.findFile(newDirectoryName)
+        if (existingEntry != null) {
+            return if (existingEntry.isDirectory) {
+                // 目录已经存在，直接返回它的 Uri，视为成功
+                Log.d(tag, "目录 '$newDirectoryName' 已存在，直接返回其 Uri")
+                existingEntry.uri
+            } else {
+                // 已存在同名文件，无法创建目录
+                Log.e(tag, "创建失败：已存在同名文件 '$newDirectoryName'")
+                null
+            }
+        }
+
+        // 3. 创建新目录
+        val newDirectory = parentDirectory.createDirectory(newDirectoryName)
+
+        return if (newDirectory != null) {
+            // 4. 创建成功，返回新目录的 Uri
+            Log.d(tag, "成功创建目录 '$newDirectoryName'，Uri: ${newDirectory.uri}")
+            newDirectory.uri
+        } else {
+            // 5. 创建失败
+            Log.e(tag, "创建目录 '$newDirectoryName' 失败")
+            null
+        }
     }
 
     // --- 私有辅助方法 ---

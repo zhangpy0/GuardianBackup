@@ -228,6 +228,7 @@ data class FileMetadata(
  * 包含所有文件元数据的清单
  */
 data class BackupManifest(
+    val dirName: String,
     val appVersion: String, // 用于未来可能的迁移
     val creationDate: Long,
     val files: List<FileMetadata>

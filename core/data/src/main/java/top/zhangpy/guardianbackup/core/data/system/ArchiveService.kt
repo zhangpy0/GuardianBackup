@@ -74,7 +74,7 @@ class ArchiveService(
             }
 
             // 添加 manifest 文件
-            val manifest = BackupManifest("1.0", System.currentTimeMillis(), metadataList)
+            val manifest = BackupManifest(zipFile.name.removeSuffix(".zip"),"1.0", System.currentTimeMillis(), metadataList)
             zos.putNextEntry(ZipEntry(MANIFEST_FILENAME))
             zos.write(gson.toJson(manifest).toByteArray())
             zos.closeEntry()
@@ -150,7 +150,7 @@ class ArchiveService(
                         if (calculatedChecksum == metadata.sha256Checksum) {
 
                             // 6. 校验成功，查找或创建目标目录
-                            val targetParentDir = fileRepository.findOrCreateDirectoryPath(destDirDocFile, entryName)
+                            val targetParentDir = fileRepository.findOrCreateDirectoryPath(destDirDocFile, manifest.dirName+"/"+entryName)
                             if (targetParentDir == null) {
                                 Log.e(tag, "Could not find or create parent directory for '$entryName'")
                                 corruptedFiles.add(entryName)
