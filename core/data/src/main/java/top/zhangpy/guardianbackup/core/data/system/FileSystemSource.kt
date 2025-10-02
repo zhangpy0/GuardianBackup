@@ -3,6 +3,9 @@ package top.zhangpy.guardianbackup.core.data.system
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import android.util.Log.e
+import androidx.documentfile.provider.DocumentFile
+import top.zhangpy.guardianbackup.core.data.model.BackupManifest
 import top.zhangpy.guardianbackup.core.data.model.BackupRequest
 import top.zhangpy.guardianbackup.core.data.model.RestoreRequest
 import top.zhangpy.guardianbackup.core.data.model.RestoreResult
@@ -46,6 +49,10 @@ class FileSystemSource(private val context: Context) {
         // 临时文件列表，用于在操作链中传递中间产物，并在最后清理
         val tempFilesToClean = mutableListOf<File>()
 
+        var manifest : BackupManifest? = null
+        val backupFileName = request.destinationUri.lastPathSegment?.removeSuffix(".dat")
+
+
         try {
             var currentSourceUris = allUris.toList()
             var urisAreInTempZip = false // 标记当前处理的是否是临时的 zip
@@ -53,10 +60,10 @@ class FileSystemSource(private val context: Context) {
             // 2. [条件性压缩]：如果请求配置了 zip
             if (request.isZipped) {
                 Log.d(tag, "Step 1: Zipping files.")
-                val tempZipFile = File.createTempFile("backup_unencrypted", ".zip", context.cacheDir)
+                val tempZipFile = File.createTempFile(backupFileName?: "backup", ".zip", context.cacheDir)
                 tempFilesToClean.add(tempZipFile)
 
-                archiveService.createArchiveWithManifest(request.sourceUrisAndPath, tempZipFile, ) { fileName, current, total ->
+                manifest = archiveService.createArchiveWithManifest(request.sourceUrisAndPath, tempZipFile, ) { fileName, current, total ->
                     request.progressCallback(fileName, current, total)
                 }
 
@@ -91,6 +98,7 @@ class FileSystemSource(private val context: Context) {
             fileRepository.copyUriContent(finalSourceUri, request.destinationUri)
 
             Log.d(tag, "Backup successfully created at ${request.destinationUri}")
+            Log.i(tag, "Manifest: $manifest")
             return true
 
         } catch (e: Exception) {
@@ -151,5 +159,13 @@ class FileSystemSource(private val context: Context) {
 
     fun listFilesWithRelativePaths(baseUri: Uri, regex: Regex): Map<Uri, String> {
         return fileRepository.listFilesWithRelativePaths(baseUri, regex)
+    }
+
+    fun getNewFileUriInDownloads(fileName: String): Uri? {
+        return fileRepository.getNewFileUriInDownloads(fileName)
+    }
+
+    fun createSubDirectory(parentDirUri: Uri, subDirName: String): Uri? {
+        return fileRepository.createSubDirectory(parentDirUri, subDirName)
     }
 }
