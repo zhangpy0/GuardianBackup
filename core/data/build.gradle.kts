@@ -49,4 +49,9 @@ dependencies {
 
     // https://mvnrepository.com/artifact/androidx.security/security-crypto
     runtimeOnly("androidx.security:security-crypto:1.1.0")
+
+    val room_version = "2.8.2"
+    implementation("androidx.room:room-runtime:$room_version")
+    annotationProcessor("androidx.room:room-compiler:$room_version")
+    implementation("androidx.room:room-ktx:${room_version}")
 }
