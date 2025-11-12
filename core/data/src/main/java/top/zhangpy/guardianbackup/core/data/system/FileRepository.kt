@@ -171,6 +171,33 @@ class FileRepository(private val context: Context) {
         return currentDir
     }
 
+    fun findOrCreateDirectory(baseDir: DocumentFile, relativePath: String): DocumentFile? {
+        // 替换 java.io.File.separatorChar 为标准 /
+        val normalizedPath = relativePath.replace(File.separatorChar, '/')
+
+        // 按 / 分割，并移除空字符串（例如由 "a//b" 或 "/a" "a/" 产生）
+        val pathComponents = normalizedPath.split('/').filter { it.isNotEmpty() }
+
+        var currentDir = baseDir
+
+        for (component in pathComponents) {
+            val nextDir = currentDir.findFile(component)
+
+            currentDir = when {
+                // 目录已存在，直接进入
+                nextDir != null && nextDir.isDirectory -> nextDir
+
+                // 目录不存在，创建它
+                nextDir == null -> currentDir.createDirectory(component)
+                    ?: return null.also { Log.e(tag, "Failed to create directory: $component in ${currentDir.uri}") }
+
+                // 存在一个同名的文件，这是冲突，无法创建目录
+                else -> return null.also { Log.e(tag, "A file with the name '$component' already exists, cannot create directory.") }
+            }
+        }
+        return currentDir // 现在 currentDir 是路径的最后一部分
+    }
+
     fun getNewFileUriInDownloads(fileName: String, mimeType: String = "application/octet-stream"): Uri? {
         val contentValues = ContentValues().apply {
             put(MediaStore.Downloads.DISPLAY_NAME, fileName)
@@ -311,8 +338,13 @@ class FileRepository(private val context: Context) {
         currentRelativePath: String,
         fileMap: MutableMap<Uri, String>
     ) {
+        val entries = currentDirectory.listFiles()
+        if (entries.isEmpty() && currentRelativePath.isNotEmpty()) {
+            // 这是一个空目录（且不是根目录），添加它以便备份
+            fileMap[currentDirectory.uri] = currentRelativePath
+        }
         // 遍历当前目录下的所有文件和子目录
-        for (file in currentDirectory.listFiles()) {
+        for (file in entries) {
             val fileName = file.name ?: continue // 如果文件名为空则跳过
 
             // 构建下一级的相对路径
