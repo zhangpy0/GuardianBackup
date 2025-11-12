@@ -50,27 +50,71 @@ class ArchiveService(
 
         ZipOutputStream(FileOutputStream(zipFile)).use { zos ->
             filesToProcess.forEachIndexed { index, (uri, pathInArchive) ->
-                val (name, size, lastModified) = fileRepository.getMetadataFromUri(uri)
-                progressCallback(name, index + 1, filesToProcess.size)
-
-                // 直接使用 Map 中提供的相对路径
-                val checksum = integrityService.calculateSHA256(uri)
-                metadataList.add(
-                    FileMetadata(
-                        originalPath = uri.toString(),
-                        pathInArchive = pathInArchive, // 直接使用，无需再计算
-                        size = size,
-                        lastModified = lastModified,
-                        sha256Checksum = checksum
-                    )
-                )
-
-                val entry = ZipEntry(pathInArchive)
-                zos.putNextEntry(entry)
-                fileRepository.getInputStream(uri).use { fis ->
-                    fis.copyTo(zos, BUFFER_SIZE)
+                // **新增：** 检查条目类型
+                val docFile = DocumentFile.fromSingleUri(context, uri)
+                if (docFile == null) {
+                    Log.w(tag, "Could not get DocumentFile for $uri, skipping")
+                    return@forEachIndexed
                 }
-                zos.closeEntry()
+
+                // 统一使用 / 作为 zip 路径
+                val zipPath = pathInArchive.replace(File.separatorChar, '/')
+
+                if (docFile.isDirectory) {
+                    // **新增：** 如果是目录（来自我们的新逻辑，即空目录）
+                    // 只在 zip 中创建一个目录条目，不添加到 manifest
+                    val dirZipPath = if (zipPath.endsWith("/")) zipPath else "$zipPath/"
+                    try {
+                        zos.putNextEntry(ZipEntry(dirZipPath))
+                        zos.closeEntry()
+                        Log.d(tag, "Added empty directory to zip: $dirZipPath")
+                    } catch (e: IOException) {
+                        Log.w(tag, "Failed to add empty directory $dirZipPath", e)
+                    }
+                } else {
+                    // **原有逻辑：** 是文件，正常处理
+                    progressCallback(docFile.name ?: zipPath, index + 1, filesToProcess.size)
+
+                    val (name, size, lastModified) = fileRepository.getMetadataFromUri(uri)
+                    val checksum = integrityService.calculateSHA256(uri)
+                    metadataList.add(
+                        FileMetadata(
+                            originalPath = uri.toString(),
+                            pathInArchive = zipPath, // 使用 / 分隔的路径
+                            size = size,
+                            lastModified = lastModified,
+                            sha256Checksum = checksum
+                        )
+                    )
+
+                    val entry = ZipEntry(zipPath) // 使用 / 分隔的路径
+                    zos.putNextEntry(entry)
+                    fileRepository.getInputStream(uri).use { fis ->
+                        fis.copyTo(zos, BUFFER_SIZE)
+                    }
+                    zos.closeEntry()
+                }
+//                val (name, size, lastModified) = fileRepository.getMetadataFromUri(uri)
+//                progressCallback(name, index + 1, filesToProcess.size)
+//
+//                // 直接使用 Map 中提供的相对路径
+//                val checksum = integrityService.calculateSHA256(uri)
+//                metadataList.add(
+//                    FileMetadata(
+//                        originalPath = uri.toString(),
+//                        pathInArchive = pathInArchive, // 直接使用，无需再计算
+//                        size = size,
+//                        lastModified = lastModified,
+//                        sha256Checksum = checksum
+//                    )
+//                )
+//
+//                val entry = ZipEntry(pathInArchive)
+//                zos.putNextEntry(entry)
+//                fileRepository.getInputStream(uri).use { fis ->
+//                    fis.copyTo(zos, BUFFER_SIZE)
+//                }
+//                zos.closeEntry()
             }
 
             // 添加 manifest 文件
@@ -126,7 +170,19 @@ class ArchiveService(
                     val entryName = entry.name // 这是相对路径，如 "DCIM/Camera/IMG.jpg"
 
                     // 跳过清单文件和目录条目
-                    if (entryName == MANIFEST_FILENAME || entry.isDirectory) {
+                    if (entryName == MANIFEST_FILENAME) {
+                        entry = zis.nextEntry
+                        continue
+                    }
+
+                    if (entry.isDirectory) {
+                        // 这是我们在备份时添加的空目录
+                        val targetDir = fileRepository.findOrCreateDirectory(destDirDocFile, manifest.dirName+"/"+entryName)
+                        if (targetDir == null) {
+                            Log.e(tag, "Could not create directory: $entryName")
+                        } else {
+                            Log.d(tag, "Created directory from zip entry: $entryName")
+                        }
                         entry = zis.nextEntry
                         continue
                     }
