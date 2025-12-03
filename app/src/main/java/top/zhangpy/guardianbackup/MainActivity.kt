@@ -339,7 +339,7 @@ class MainActivity : AppCompatActivity() {
      * A native method that is implemented by the 'guardianbackup' native library,
      * which is packaged with this application.
      */
-    external fun stringFromJNI(): String
+//    external fun stringFromJNI(): String
 
     companion object {
         // Used to load the 'guardianbackup' library on application startup.
