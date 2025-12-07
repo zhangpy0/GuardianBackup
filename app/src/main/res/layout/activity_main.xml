@@ -71,6 +71,13 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Select Key File"/>
+
+            <Button
+                android:id="@+id/btnCreateKeyFile"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Create Key File"
+                android:layout_marginStart="8dp"/>
             
             <TextView
                 android:id="@+id/tvSelectedKeyFile"
@@ -102,6 +109,23 @@
             android:gravity="center"
             android:padding="8dp"
             android:background="#F0F0F0"/>
+
+        <Button
+            android:id="@+id/btnFilter"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Filter Files (Optional)"
+            android:textAllCaps="false"
+            android:layout_marginTop="8dp"/>
+
+        <TextView
+            android:id="@+id/tvFilterStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="No filter applied - backup all files"
+            android:gravity="center"
+            android:textSize="12sp"
+            android:textColor="#666666"/>
 
         <Button
             android:id="@+id/btnSelectBackupFile"

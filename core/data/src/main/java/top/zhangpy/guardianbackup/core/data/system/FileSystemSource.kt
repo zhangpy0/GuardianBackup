@@ -3,16 +3,14 @@ package top.zhangpy.guardianbackup.core.data.system
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import java.io.File
 import top.zhangpy.guardianbackup.core.data.model.BackupManifest
 import top.zhangpy.guardianbackup.core.data.model.BackupRequest
 import top.zhangpy.guardianbackup.core.data.model.RestoreRequest
 import top.zhangpy.guardianbackup.core.data.model.RestoreResult
-import java.io.File
-
 
 /**
- * 提供文件系统相关的数据源功能。
- * 负责备份和恢复文件，包括照片、视频和用户指定的文件/文件夹。
+ * 提供文件系统相关的数据源功能。 负责备份和恢复文件，包括照片、视频和用户指定的文件/文件夹。
  *
  * 功能特性:
  * - 完整性校验 (SHA-256)
@@ -28,7 +26,7 @@ class FileSystemSource(private val context: Context) {
 
     private val fileRepository = FileRepository(context)
     private val integrityService = IntegrityService(fileRepository)
-    private val encryptionService : IEncryptionService = EncryptionCBCStreamService(fileRepository)
+    private val encryptionService: IEncryptionService = EncryptionCBCStreamService(fileRepository)
     private val archiveService = ArchiveService(context, fileRepository, integrityService)
 
     /**
@@ -47,9 +45,8 @@ class FileSystemSource(private val context: Context) {
         // 临时文件列表，用于在操作链中传递中间产物，并在最后清理
         val tempFilesToClean = mutableListOf<File>()
 
-        var manifest : BackupManifest? = null
+        var manifest: BackupManifest? = null
         val backupFileName = request.destinationUri.lastPathSegment?.removeSuffix(".dat")
-
 
         try {
             var currentSourceUris = allUris.toList()
@@ -58,12 +55,17 @@ class FileSystemSource(private val context: Context) {
             // 2. [条件性压缩]：如果请求配置了 zip
             if (request.isZipped) {
                 Log.d(tag, "Step 1: Zipping files.")
-                val tempZipFile = File.createTempFile(backupFileName?: "backup", ".zip", context.cacheDir)
+                val tempZipFile =
+                        File.createTempFile(backupFileName ?: "backup", ".zip", context.cacheDir)
                 tempFilesToClean.add(tempZipFile)
 
-                manifest = archiveService.createArchiveWithManifest(request.sourceUrisAndPath, tempZipFile, ) { fileName, current, total ->
-                    request.progressCallback(fileName, current, total)
-                }
+                manifest =
+                        archiveService.createArchiveWithManifest(
+                                request.sourceUrisAndPath,
+                                tempZipFile,
+                        ) { fileName, current, total ->
+                            request.progressCallback(fileName, current, total)
+                        }
 
                 // 下一步操作的源变成了这个临时的 zip 文件
                 currentSourceUris = listOf(Uri.fromFile(tempZipFile))
@@ -78,13 +80,20 @@ class FileSystemSource(private val context: Context) {
 
                 // 如果没有压缩，并且有多个源文件，这是不支持的组合
                 if (!urisAreInTempZip && currentSourceUris.size > 1) {
-                    throw IllegalStateException("Encryption without zip is only supported for a single source file.")
+                    throw IllegalStateException(
+                            "Encryption without zip is only supported for a single source file."
+                    )
                 }
 
-                val tempEncryptedFile = File.createTempFile("backup_encrypted", ".dat", context.cacheDir)
+                val tempEncryptedFile =
+                        File.createTempFile("backup_encrypted", ".dat", context.cacheDir)
                 tempFilesToClean.add(tempEncryptedFile)
 
-                encryptionService.encryptFile(sourceToEncryptUri, Uri.fromFile(tempEncryptedFile), request.password)
+                encryptionService.encryptFile(
+                        sourceToEncryptUri,
+                        Uri.fromFile(tempEncryptedFile),
+                        request.password
+                )
 
                 // 下一步操作的源变成了这个临时的加密文件
                 currentSourceUris = listOf(Uri.fromFile(tempEncryptedFile))
@@ -94,11 +103,12 @@ class FileSystemSource(private val context: Context) {
             Log.d(tag, "Step 3: Copying final artifact to destination.")
             val finalSourceUri = currentSourceUris.first()
             fileRepository.copyUriContent(finalSourceUri, request.destinationUri)
+            // 5. [发布文件]：确保文件内容写入后再更新 MediaStore 状态，使其对其他应用可见
+            fileRepository.publishFile(request.destinationUri)
 
             Log.d(tag, "Backup successfully created at ${request.destinationUri}")
             Log.i(tag, "Manifest: $manifest")
             return true
-
         } catch (e: Exception) {
             Log.e(tag, "Backup failed", e)
             return false
@@ -118,7 +128,11 @@ class FileSystemSource(private val context: Context) {
             // 1. [条件性解密]：如果提供了密码，则假定文件是加密的
             if (request.password != null) {
                 Log.d(tag, "Restore Step 1: Decrypting file.")
-                encryptionService.decryptFile(request.sourceBackupUri, Uri.fromFile(tempDecryptedFile), request.password)
+                encryptionService.decryptFile(
+                        request.sourceBackupUri,
+                        Uri.fromFile(tempDecryptedFile),
+                        request.password
+                )
                 zipUriToUnpack = Uri.fromFile(tempDecryptedFile)
             } else {
                 // 如果没有密码，直接处理源文件
@@ -129,13 +143,21 @@ class FileSystemSource(private val context: Context) {
             // 2. 从 zip 文件中读取元数据清单
             // 注意：这里需要一个能从 Uri 读取的 readManifestFromZip 版本
             Log.d(tag, "Restore Step 2: Reading manifest.")
-            val manifest = archiveService.readManifestFromArchive(zipUriToUnpack)
-                ?: return RestoreResult(isSuccess = false, errorMessage = "Manifest file not found or corrupted.")
+            val manifest =
+                    archiveService.readManifestFromArchive(zipUriToUnpack)
+                            ?: return RestoreResult(
+                                    isSuccess = false,
+                                    errorMessage = "Manifest file not found or corrupted."
+                            )
 
             // 3. 解压文件并进行校验到目标 Uri
             Log.d(tag, "Restore Step 3: Unpacking and verifying files.")
-            return archiveService.unpackAndVerifyFromUri(zipUriToUnpack, manifest, request.destinationDirectoryUri, request.progressCallback)
-
+            return archiveService.unpackAndVerifyFromUri(
+                    zipUriToUnpack,
+                    manifest,
+                    request.destinationDirectoryUri,
+                    request.progressCallback
+            )
         } catch (e: Exception) {
             Log.e(tag, "Restore failed", e)
             return RestoreResult(isSuccess = false, errorMessage = e.message)
@@ -148,8 +170,8 @@ class FileSystemSource(private val context: Context) {
      * 【推荐的新方法】递归地列出给定根目录下所有文件，并返回一个包含每个文件 Uri 及其相对路径的 Map。
      *
      * @param baseUri 要开始遍历的根目录（或单个文件）的 Uri。
-     * @return 一个 Map，其中键是文件的 Uri，值是该文件相对于 baseUri 的路径字符串。
-     * 例如：{ "content://.../IMG_001.jpg": "DCIM/Camera/IMG_001.jpg" }
+     * @return 一个 Map，其中键是文件的 Uri，值是该文件相对于 baseUri 的路径字符串。 例如：{ "content://.../IMG_001.jpg":
+     * "DCIM/Camera/IMG_001.jpg" }
      */
     fun listFilesWithRelativePaths(baseUri: Uri): Map<Uri, String> {
         return fileRepository.listFilesWithRelativePaths(baseUri)

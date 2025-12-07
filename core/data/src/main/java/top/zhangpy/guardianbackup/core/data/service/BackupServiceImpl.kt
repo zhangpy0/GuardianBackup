@@ -2,15 +2,16 @@ package top.zhangpy.guardianbackup.core.data.service
 
 import android.content.Context
 import android.net.Uri
-import java.io.BufferedReader
-import java.io.InputStreamReader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import top.zhangpy.guardianbackup.core.data.model.BackupRequestBuilder
 import top.zhangpy.guardianbackup.core.data.model.execute
+import top.zhangpy.guardianbackup.core.data.system.KeyManagerService
 import top.zhangpy.guardianbackup.core.domain.service.BackupService
 
 class BackupServiceImpl(private val context: Context) : BackupService {
+
+    private val keyManagerService = KeyManagerService(context)
 
     override suspend fun backup(
             sourceUris: Map<Uri, String>,
@@ -23,7 +24,7 @@ class BackupServiceImpl(private val context: Context) : BackupService {
             val passwordChars =
                     if (key != null) {
                         if (isFileKey) {
-                            readKeyFile(Uri.parse(key))
+                            keyManagerService.readKeyFromFile(Uri.parse(key))
                         } else {
                             key.toCharArray()
                         }
@@ -52,19 +53,6 @@ class BackupServiceImpl(private val context: Context) : BackupService {
                 e.printStackTrace()
                 false
             }
-        }
-    }
-
-    private fun readKeyFile(uri: Uri): CharArray? {
-        return try {
-            context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                BufferedReader(InputStreamReader(inputStream)).use { reader ->
-                    reader.readText().trim().toCharArray()
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
         }
     }
 }

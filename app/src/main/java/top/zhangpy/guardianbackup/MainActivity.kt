@@ -5,7 +5,6 @@ import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
-import android.os.Environment
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
@@ -19,12 +18,15 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.core.view.setPadding
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModelProvider
-import java.io.File
+import top.zhangpy.guardianbackup.core.data.system.FileFilterService
+import top.zhangpy.guardianbackup.core.data.system.FileRepository
 import top.zhangpy.guardianbackup.core.data.system.FileSystemPickerUtils
 import top.zhangpy.guardianbackup.core.data.system.FileSystemSource
+import top.zhangpy.guardianbackup.core.data.system.KeyManagerService
+import top.zhangpy.guardianbackup.core.domain.model.FileFilter
+import top.zhangpy.guardianbackup.ui.FilterDialogFragment
 
 class MainActivity : AppCompatActivity() {
 
@@ -32,6 +34,12 @@ class MainActivity : AppCompatActivity() {
     private var selectedDirectoryUri: Uri? = null
     private var selectedBackupFileUri: Uri? = null
     private var selectedKeyFileUri: Uri? = null
+
+    // New Feature: File Filter
+    private var currentFileFilter: FileFilter = FileFilter.NO_FILTER
+    private lateinit var fileFilterService: FileFilterService
+    // New Feature: Key Manager
+    private lateinit var keyManagerService: KeyManagerService
 
     // UI Components
     private lateinit var tvSelectedDirectory: TextView
@@ -43,6 +51,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvStatus: TextView
     private lateinit var tvProgress: TextView
     private lateinit var progressBar: ProgressBar
+    private lateinit var tvFilterStatus: TextView // New UI
 
     private val directoryPickerLauncher =
             registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -85,8 +94,55 @@ class MainActivity : AppCompatActivity() {
                         result.resultCode,
                         result.data
                 ) { uri ->
-                    selectedKeyFileUri = uri
-                    tvSelectedKeyFile.text = uri.path
+                    // Validate key file
+                    val validation = keyManagerService.validateKeyFile(uri)
+                    if (validation.isValid) {
+                        selectedKeyFileUri = uri
+                        tvSelectedKeyFile.text = uri.path
+                        if (validation.isLegacyFormat) {
+                            Toast.makeText(
+                                            this,
+                                            "Legacy key file selected (valid).",
+                                            Toast.LENGTH_SHORT
+                                    )
+                                    .show()
+                        }
+                    } else {
+                        Toast.makeText(
+                                        this,
+                                        "Invalid key file: ${validation.message}",
+                                        Toast.LENGTH_LONG
+                                )
+                                .show()
+                        selectedKeyFileUri = null
+                        tvSelectedKeyFile.text = "Invalid file selected"
+                    }
+                }
+            }
+
+    private val createKeyFileLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                if (result.resultCode == RESULT_OK && result.data != null) {
+                    result.data?.data?.let { uri ->
+                        val key = keyManagerService.createKeyFile(uri)
+                        if (key != null) {
+                            Toast.makeText(
+                                            this,
+                                            "Key file created successfully!",
+                                            Toast.LENGTH_SHORT
+                                    )
+                                    .show()
+                            selectedKeyFileUri = uri
+                            tvSelectedKeyFile.text = uri.path
+                            // Set text field as well for visual confirmation (optional)
+                            etCustomKey.setText(
+                                    key
+                            ) // Not putting into etCustomKey to avoid confusion, file is enough
+                        } else {
+                            Toast.makeText(this, "Failed to write key file.", Toast.LENGTH_SHORT)
+                                    .show()
+                        }
+                    }
                 }
             }
 
@@ -101,8 +157,8 @@ class MainActivity : AppCompatActivity() {
 
         // 如果之前通过 FLAG_FULLSCREEN 隐藏过系统栏，清除该标志并显示系统栏
         window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN)
-        WindowInsetsControllerCompat(window, window.decorView).show(WindowInsetsCompat.Type.systemBars())
-
+        WindowInsetsControllerCompat(window, window.decorView)
+                .show(WindowInsetsCompat.Type.systemBars())
 
         // Initialize Permission Manager
         PermissionManager.initialize(this, application)
@@ -111,6 +167,10 @@ class MainActivity : AppCompatActivity() {
         // Initialize ViewModel
         val factory = MainViewModelFactory(application)
         viewModel = ViewModelProvider(this, factory)[MainViewModel::class.java]
+
+        // Initialize Services
+        keyManagerService = KeyManagerService(this)
+        fileFilterService = FileFilterService(FileRepository(this))
 
         // Bind UI
         bindViews()
@@ -128,12 +188,23 @@ class MainActivity : AppCompatActivity() {
         tvStatus = findViewById(R.id.tvStatus)
         tvProgress = findViewById(R.id.tvProgress)
         progressBar = findViewById(R.id.progressBar)
+        tvFilterStatus = findViewById(R.id.tvFilterStatus)
     }
 
     private fun setupListeners() {
         findViewById<Button>(R.id.btnSelectDirectory).setOnClickListener {
             val intent = FileSystemPickerUtils.createDirectoryPickerIntent()
             directoryPickerLauncher.launch(intent)
+        }
+
+        // Filter Button
+        findViewById<Button>(R.id.btnFilter).setOnClickListener {
+            val dialog =
+                    FilterDialogFragment(currentFileFilter) { newFilter ->
+                        currentFileFilter = newFilter
+                        updateFilterStatus()
+                    }
+            dialog.show(supportFragmentManager, "FilterDialog")
         }
 
         findViewById<Button>(R.id.btnSelectBackupFile).setOnClickListener {
@@ -149,14 +220,26 @@ class MainActivity : AppCompatActivity() {
             keyFilePickerLauncher.launch(intent)
         }
 
+        findViewById<Button>(R.id.btnCreateKeyFile).setOnClickListener {
+            val intent =
+                    Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                        type = "text/plain" // Or application/octet-stream but text is safer for
+                        // preview
+                        putExtra(Intent.EXTRA_TITLE, "my_backup_key.gkey")
+                    }
+            createKeyFileLauncher.launch(intent)
+        }
+
         findViewById<Button>(R.id.btnViewHistory).setOnClickListener {
             startActivity(Intent(this, HistoryActivity::class.java))
         }
 
-//        // status bar height adjustment
-//        val statusBarHeight = WindowInsetsCompat.toWindowInsetsCompat(window.decorView.rootWindowInsets)
-//            .getInsets(WindowInsetsCompat.Type.statusBars()).top
-//        findViewById<Button>(R.id.btnViewHistory).setPadding(0, statusBarHeight / 2, 0, 0)
+        //        // status bar height adjustment
+        //        val statusBarHeight =
+        // WindowInsetsCompat.toWindowInsetsCompat(window.decorView.rootWindowInsets)
+        //            .getInsets(WindowInsetsCompat.Type.statusBars()).top
+        //        findViewById<Button>(R.id.btnViewHistory).setPadding(0, statusBarHeight / 2, 0, 0)
 
         rgKeyType.setOnCheckedChangeListener { _, checkedId ->
             if (checkedId == R.id.rbCustomKey) {
@@ -169,6 +252,18 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnBackup).setOnClickListener { performBackup() }
 
         findViewById<Button>(R.id.btnRestore).setOnClickListener { performRestore() }
+    }
+
+    private fun updateFilterStatus() {
+        if (currentFileFilter.hasAnyFilter()) {
+            tvFilterStatus.text = "Filter Active: ${currentFileFilter.extensions.joinToString(",")}"
+            tvFilterStatus.setTextColor(
+                    resources.getColor(android.R.color.holo_blue_dark)
+            ) // simple color
+        } else {
+            tvFilterStatus.text = "No filter applied - backup all files"
+            tvFilterStatus.setTextColor(Color.parseColor("#666666"))
+        }
     }
 
     private fun observeViewModel() {
@@ -224,22 +319,48 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        // Prepare destination file
-        val desFile = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+        // Apply Filter
+        val filteredMap = fileFilterService.filterFiles(filesMap, currentFileFilter)
+        if (filteredMap.isEmpty()) {
+            Toast.makeText(this, "No files matched the filter criteria.", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        Toast.makeText(this, "Backing up ${filteredMap.size} files...", Toast.LENGTH_SHORT).show()
+
+        // Prepare destination file (Public Downloads)
+        // val desFile = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+        val dirName = DocumentFile.fromTreeUri(this, selectedDirectoryUri!!)?.name ?: "unknown"
         val timeStamp =
                 java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault())
                         .format(java.util.Date())
-        val dirName = DocumentFile.fromTreeUri(this, selectedDirectoryUri!!)?.name ?: "unknown"
         val fileName = "${dirName}_backup_${timeStamp}.dat"
-        val destinationFile = File(desFile, fileName)
+        // val destinationFile = File(desFile, fileName) // Old: Private app storage
 
         try {
+            // New: Public Downloads storage
+            val destinationUri = fileSystemSource.getNewFileUriInDownloads(fileName)
+
+            if (destinationUri != null) {
+                viewModel.backup(filteredMap, destinationUri, key, isFileKey)
+            } else {
+                Toast.makeText(
+                                this,
+                                "Failed to create destination file in Downloads",
+                                Toast.LENGTH_SHORT
+                        )
+                        .show()
+            }
+
+            // Old Implementation
+            /*
             if (destinationFile.createNewFile()) {
                 val destinationUri = Uri.fromFile(destinationFile)
                 viewModel.backup(filesMap, destinationUri, key, isFileKey)
             } else {
                 Toast.makeText(this, "Failed to create destination file", Toast.LENGTH_SHORT).show()
             }
+            */
         } catch (e: Exception) {
             Toast.makeText(this, "Error creating file: ${e.message}", Toast.LENGTH_SHORT).show()
         }

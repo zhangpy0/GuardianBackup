@@ -17,13 +17,10 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.util.UUID
 
-/**
- * 仓库层：封装所有与设备存储的直接交互。
- * 职责：提供对 MediaStore 和 SAF 的原子化访问接口。
- */
+/** 仓库层：封装所有与设备存储的直接交互。 职责：提供对 MediaStore 和 SAF 的原子化访问接口。 */
 class FileRepository(private val context: Context) {
 
-    private val tag : String = "FileRepository"
+    private val tag: String = "FileRepository"
     private val contentResolver: ContentResolver = context.contentResolver
 
     // --- 文件发现 ---
@@ -37,9 +34,9 @@ class FileRepository(private val context: Context) {
     }
 
     fun listFilesWithRelativePaths(baseUri: Uri): Map<Uri, String> {
-        val baseDocFile = DocumentFile.fromTreeUri(context, baseUri)
-            ?: DocumentFile.fromSingleUri(context, baseUri)
-            ?: return emptyMap()
+        val baseDocFile =
+                DocumentFile.fromTreeUri(context, baseUri)
+                        ?: DocumentFile.fromSingleUri(context, baseUri) ?: return emptyMap()
 
         val fileMap = mutableMapOf<Uri, String>()
         if (baseDocFile.isDirectory) {
@@ -51,17 +48,17 @@ class FileRepository(private val context: Context) {
     }
 
     /**
-     * 【已修改】递归地列出给定根目录下所有文件，并返回一个包含每个文件 Uri 及其相对路径的 Map。
-     * 新增功能：只包含文件名与给定正则表达式匹配的文件。
+     * 【已修改】递归地列出给定根目录下所有文件，并返回一个包含每个文件 Uri 及其相对路径的 Map。 新增功能：只包含文件名与给定正则表达式匹配的文件。
      *
      * @param baseUri 要开始遍历的根目录（或单个文件）的 Uri。
      * @param regex 用于过滤文件名的正则表达式。
      * @return 一个 Map，其中键是文件的 Uri，值是该文件相对于 baseUri 的路径字符串。
      */
     fun listFilesWithRelativePaths(baseUri: Uri, regex: Regex): Map<Uri, String> {
-        val baseDocFile = DocumentFile.fromTreeUri(context, baseUri)
-            ?: DocumentFile.fromSingleUri(context, baseUri) // 同样支持选择单个文件
-            ?: return emptyMap()
+        val baseDocFile =
+                DocumentFile.fromTreeUri(context, baseUri)
+                        ?: DocumentFile.fromSingleUri(context, baseUri) // 同样支持选择单个文件
+                         ?: return emptyMap()
 
         val fileMap = mutableMapOf<Uri, String>()
 
@@ -85,19 +82,17 @@ class FileRepository(private val context: Context) {
 
     fun getInputStream(uri: Uri): InputStream {
         return contentResolver.openInputStream(uri)
-            ?: throw IOException("Failed to open InputStream for URI: $uri")
+                ?: throw IOException("Failed to open InputStream for URI: $uri")
     }
 
     fun getOutputStream(uri: Uri, mode: String = "w"): OutputStream {
         return contentResolver.openOutputStream(uri, mode)
-            ?: throw IOException("Failed to open OutputStream for URI: $uri")
+                ?: throw IOException("Failed to open OutputStream for URI: $uri")
     }
 
     fun copyUriContent(sourceUri: Uri, destinationUri: Uri) {
         getInputStream(sourceUri).use { input ->
-            getOutputStream(destinationUri).use { output ->
-                input.copyTo(output)
-            }
+            getOutputStream(destinationUri).use { output -> input.copyTo(output) }
         }
     }
 
@@ -125,12 +120,13 @@ class FileRepository(private val context: Context) {
                 val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                 val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
                 // 最后修改时间不一定在所有 provider 中都可用
-                val lastModified = try {
-                    cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_MODIFIED)
-                        .let { cursor.getLong(it) * 1000 }
-                } catch (e: Exception) {
-                    System.currentTimeMillis()
-                }
+                val lastModified =
+                        try {
+                            cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_MODIFIED)
+                                    .let { cursor.getLong(it) * 1000 }
+                        } catch (e: Exception) {
+                            System.currentTimeMillis()
+                        }
 
                 val name = if (nameIndex > -1) cursor.getString(nameIndex) else getFileName(uri)
                 val size = if (sizeIndex > -1) cursor.getLong(sizeIndex) else -1L
@@ -140,7 +136,11 @@ class FileRepository(private val context: Context) {
         }
         // 回退方案
         val docFile = DocumentFile.fromSingleUri(context, uri)
-        return Triple(docFile?.name ?: getFileName(uri), docFile?.length() ?: -1L, docFile?.lastModified() ?: -1L)
+        return Triple(
+                docFile?.name ?: getFileName(uri),
+                docFile?.length() ?: -1L,
+                docFile?.lastModified() ?: -1L
+        )
     }
 
     fun findOrCreateDirectoryPath(baseDir: DocumentFile, relativePath: String): DocumentFile? {
@@ -156,17 +156,29 @@ class FileRepository(private val context: Context) {
         for (component in pathComponents) {
             val nextDir = currentDir.findFile(component)
 
-            currentDir = when {
-                // 目录已存在，直接进入
-                nextDir != null && nextDir.isDirectory -> nextDir
+            currentDir =
+                    when {
+                        // 目录已存在，直接进入
+                        nextDir != null && nextDir.isDirectory -> nextDir
 
-                // 目录不存在，创建它
-                nextDir == null -> currentDir.createDirectory(component)
-                    ?: return null.also { Log.e(tag, "Failed to create directory: $component in ${currentDir.uri}") }
+                        // 目录不存在，创建它
+                        nextDir == null -> currentDir.createDirectory(component)
+                                        ?: return null.also {
+                                            Log.e(
+                                                    tag,
+                                                    "Failed to create directory: $component in ${currentDir.uri}"
+                                            )
+                                        }
 
-                // 存在一个同名的文件，这是冲突，无法创建目录
-                else -> return null.also { Log.e(tag, "A file with the name '$component' already exists, cannot create directory.") }
-            }
+                        // 存在一个同名的文件，这是冲突，无法创建目录
+                        else ->
+                                return null.also {
+                                    Log.e(
+                                            tag,
+                                            "A file with the name '$component' already exists, cannot create directory."
+                                    )
+                                }
+                    }
         }
         return currentDir
     }
@@ -183,46 +195,64 @@ class FileRepository(private val context: Context) {
         for (component in pathComponents) {
             val nextDir = currentDir.findFile(component)
 
-            currentDir = when {
-                // 目录已存在，直接进入
-                nextDir != null && nextDir.isDirectory -> nextDir
+            currentDir =
+                    when {
+                        // 目录已存在，直接进入
+                        nextDir != null && nextDir.isDirectory -> nextDir
 
-                // 目录不存在，创建它
-                nextDir == null -> currentDir.createDirectory(component)
-                    ?: return null.also { Log.e(tag, "Failed to create directory: $component in ${currentDir.uri}") }
+                        // 目录不存在，创建它
+                        nextDir == null -> currentDir.createDirectory(component)
+                                        ?: return null.also {
+                                            Log.e(
+                                                    tag,
+                                                    "Failed to create directory: $component in ${currentDir.uri}"
+                                            )
+                                        }
 
-                // 存在一个同名的文件，这是冲突，无法创建目录
-                else -> return null.also { Log.e(tag, "A file with the name '$component' already exists, cannot create directory.") }
-            }
+                        // 存在一个同名的文件，这是冲突，无法创建目录
+                        else ->
+                                return null.also {
+                                    Log.e(
+                                            tag,
+                                            "A file with the name '$component' already exists, cannot create directory."
+                                    )
+                                }
+                    }
         }
         return currentDir // 现在 currentDir 是路径的最后一部分
     }
 
-    fun getNewFileUriInDownloads(fileName: String, mimeType: String = "application/octet-stream"): Uri? {
-        val contentValues = ContentValues().apply {
-            put(MediaStore.Downloads.DISPLAY_NAME, fileName)
-            put(MediaStore.Downloads.MIME_TYPE, mimeType)
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                put(MediaStore.Downloads.RELATIVE_PATH, "Download/GuardianBackup/")
-                put(MediaStore.Downloads.IS_PENDING, 1) // 标记为正在创建
-            }
-        }
+    fun getNewFileUriInDownloads(
+            fileName: String,
+            mimeType: String = "application/octet-stream"
+    ): Uri? {
+        val contentValues =
+                ContentValues().apply {
+                    put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+                    put(MediaStore.Downloads.MIME_TYPE, mimeType)
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                        put(MediaStore.Downloads.RELATIVE_PATH, "Download/GuardianBackup/")
+                        put(MediaStore.Downloads.IS_PENDING, 1) // 标记为正在创建
+                    }
+                }
 
         var uri: Uri? = null
         try {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
                 // 对于 Android 10 及以上版本，使用 MediaStore API
-                uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                uri =
+                        contentResolver.insert(
+                                MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                                contentValues
+                        )
                 if (uri == null) {
                     Log.e(tag, "Failed to create new file in Downloads: $fileName")
                     return null
                 } else {
-                    Log.d(tag, "Created new file URI in Downloads: $uri")
+                    Log.d(tag, "Created new file URI in Downloads: $uri (Pending)")
                 }
-                // 创建完成后，更新 IS_PENDING 状态
-                contentValues.clear()
-                contentValues.put(MediaStore.Downloads.IS_PENDING, 0)
-                contentResolver.update(uri, contentValues, null, null)
+                // No longer setting IS_PENDING to 0 here. It must be done manually via
+                // publishFile()
             } else {
                 // 对于 Android 9 及以下版本，直接创建在 Download 目录
                 val downloadsDir = getExternalStoragePublicDirectory(DIRECTORY_DOWNLOADS)
@@ -235,7 +265,10 @@ class FileRepository(private val context: Context) {
                 }
                 val newFile = File(guardianDir, fileName)
                 if (newFile.exists()) {
-                    Log.w(tag, "File already exists and will be overwritten: ${newFile.absolutePath}")
+                    Log.w(
+                            tag,
+                            "File already exists and will be overwritten: ${newFile.absolutePath}"
+                    )
                     // 如果文件已存在，可以选择删除或覆盖
                     if (!newFile.delete()) {
                         Log.e(tag, "Failed to delete existing file: ${newFile.absolutePath}")
@@ -252,6 +285,19 @@ class FileRepository(private val context: Context) {
         return uri
     }
 
+    fun publishFile(uri: Uri) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            try {
+                val contentValues =
+                        ContentValues().apply { put(MediaStore.Downloads.IS_PENDING, 0) }
+                contentResolver.update(uri, contentValues, null, null)
+                Log.d(tag, "Published file: $uri")
+            } catch (e: Exception) {
+                Log.e(tag, "Failed to publish file: $uri", e)
+            }
+        }
+    }
+
     /**
      * 在给定的父 DocumentFile 目录下创建一个新的子目录。
      *
@@ -260,15 +306,13 @@ class FileRepository(private val context: Context) {
      * @param newDirectoryName 要创建的新目录的名称。
      * @return 如果成功创建或目录已存在，则返回新目录的 Uri；如果失败，则返回 null。
      */
-    fun createSubDirectory(
-        parentDirectoryUri: Uri,
-        newDirectoryName: String
-    ): Uri? {
-        val parentDirectory = DocumentFile.fromTreeUri(context, parentDirectoryUri)
-            ?: run {
-                Log.e(tag, "无法解析 parentDirectoryUri: $parentDirectoryUri")
-                return null
-            }
+    fun createSubDirectory(parentDirectoryUri: Uri, newDirectoryName: String): Uri? {
+        val parentDirectory =
+                DocumentFile.fromTreeUri(context, parentDirectoryUri)
+                        ?: run {
+                            Log.e(tag, "无法解析 parentDirectoryUri: $parentDirectoryUri")
+                            return null
+                        }
         // 1. 前置检查：确保父目录有效且可写
         if (!parentDirectory.isDirectory) {
             Log.e(tag, "提供的 parentDirectory 不是一个目录")
@@ -314,29 +358,39 @@ class FileRepository(private val context: Context) {
     // --- 私有辅助方法 ---
     private fun getMediaFolders(contentUri: Uri): Map<String, List<Uri>> {
         val folders = mutableMapOf<String, MutableList<Uri>>()
-        val projection = arrayOf(
-            MediaStore.MediaColumns._ID, // 使用 ID 来构造 Uri
-            MediaStore.MediaColumns.BUCKET_DISPLAY_NAME // 文件夹名
-        )
+        val projection =
+                arrayOf(
+                        MediaStore.MediaColumns._ID, // 使用 ID 来构造 Uri
+                        MediaStore.MediaColumns.BUCKET_DISPLAY_NAME // 文件夹名
+                )
 
-        context.contentResolver.query(contentUri, projection, null, null, "${MediaStore.MediaColumns.DATE_MODIFIED} DESC")
-            ?.use { cursor ->
-                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
-                val bucketColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.BUCKET_DISPLAY_NAME)
-                while (cursor.moveToNext()) {
-                    val id = cursor.getLong(idColumn)
-                    val bucket = cursor.getString(bucketColumn)
-                    val uri = ContentUris.withAppendedId(contentUri, id)
-                    folders.getOrPut(bucket) { mutableListOf() }.add(uri)
+        context.contentResolver.query(
+                        contentUri,
+                        projection,
+                        null,
+                        null,
+                        "${MediaStore.MediaColumns.DATE_MODIFIED} DESC"
+                )
+                ?.use { cursor ->
+                    val idColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
+                    val bucketColumn =
+                            cursor.getColumnIndexOrThrow(
+                                    MediaStore.MediaColumns.BUCKET_DISPLAY_NAME
+                            )
+                    while (cursor.moveToNext()) {
+                        val id = cursor.getLong(idColumn)
+                        val bucket = cursor.getString(bucketColumn)
+                        val uri = ContentUris.withAppendedId(contentUri, id)
+                        folders.getOrPut(bucket) { mutableListOf() }.add(uri)
+                    }
                 }
-            }
         return folders
     }
 
     private fun recursiveListHelper(
-        currentDirectory: DocumentFile,
-        currentRelativePath: String,
-        fileMap: MutableMap<Uri, String>
+            currentDirectory: DocumentFile,
+            currentRelativePath: String,
+            fileMap: MutableMap<Uri, String>
     ) {
         val entries = currentDirectory.listFiles()
         if (entries.isEmpty() && currentRelativePath.isNotEmpty()) {
@@ -348,11 +402,12 @@ class FileRepository(private val context: Context) {
             val fileName = file.name ?: continue // 如果文件名为空则跳过
 
             // 构建下一级的相对路径
-            val nextRelativePath = if (currentRelativePath.isEmpty()) {
-                fileName
-            } else {
-                "$currentRelativePath/$fileName"
-            }
+            val nextRelativePath =
+                    if (currentRelativePath.isEmpty()) {
+                        fileName
+                    } else {
+                        "$currentRelativePath/$fileName"
+                    }
 
             if (file.isDirectory) {
                 // 如果是目录，继续向下一层递归
@@ -373,21 +428,22 @@ class FileRepository(private val context: Context) {
      * @param regex 用于过滤文件名的正则表达式。
      */
     private fun recursiveListHelper(
-        currentDirectory: DocumentFile,
-        currentRelativePath: String,
-        fileMap: MutableMap<Uri, String>,
-        regex: Regex // 接收 regex 参数
+            currentDirectory: DocumentFile,
+            currentRelativePath: String,
+            fileMap: MutableMap<Uri, String>,
+            regex: Regex // 接收 regex 参数
     ) {
         // 遍历当前目录下的所有文件和子目录
         for (file in currentDirectory.listFiles()) {
             val fileName = file.name ?: continue // 如果文件名为空则跳过
 
             // 构建下一级的相对路径
-            val nextRelativePath = if (currentRelativePath.isEmpty()) {
-                fileName
-            } else {
-                "$currentRelativePath/$fileName"
-            }
+            val nextRelativePath =
+                    if (currentRelativePath.isEmpty()) {
+                        fileName
+                    } else {
+                        "$currentRelativePath/$fileName"
+                    }
 
             if (file.isDirectory) {
                 // 如果是目录，继续向下一层递归
