@@ -7,6 +7,7 @@ import kotlinx.coroutines.withContext
 import top.zhangpy.guardianbackup.core.data.model.BackupRequestBuilder
 import top.zhangpy.guardianbackup.core.data.model.execute
 import top.zhangpy.guardianbackup.core.data.system.KeyManagerService
+import top.zhangpy.guardianbackup.core.domain.model.BackupResult
 import top.zhangpy.guardianbackup.core.domain.service.BackupService
 
 class BackupServiceImpl(private val context: Context) : BackupService {
@@ -19,7 +20,7 @@ class BackupServiceImpl(private val context: Context) : BackupService {
             key: String?,
             isFileKey: Boolean,
             onProgress: (String, Int, Int) -> Unit
-    ): Boolean {
+    ): BackupResult {
         return withContext(Dispatchers.IO) {
             val passwordChars =
                     if (key != null) {
@@ -51,7 +52,13 @@ class BackupServiceImpl(private val context: Context) : BackupService {
                 request.execute()
             } catch (e: Exception) {
                 e.printStackTrace()
-                false
+                BackupResult(
+                        isSuccess = false,
+                        destinationUri = destinationUri,
+                        sizeBytes = 0,
+                        fileCount = 0,
+                        errorMessage = e.message
+                )
             }
         }
     }

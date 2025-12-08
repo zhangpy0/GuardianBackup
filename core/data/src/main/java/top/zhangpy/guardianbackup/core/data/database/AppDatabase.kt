@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import top.zhangpy.guardianbackup.core.data.database.dao.BackupHistoryDao
 import top.zhangpy.guardianbackup.core.data.database.entity.BackupHistoryEntity
 
-@Database(entities = [BackupHistoryEntity::class], version = 1)
+@Database(entities = [BackupHistoryEntity::class], version = 2)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun backupHistoryDao(): BackupHistoryDao
 
@@ -23,6 +23,7 @@ abstract class AppDatabase : RoomDatabase() {
                                                 AppDatabase::class.java,
                                                 "guardian_backup_db"
                                         )
+                                        .fallbackToDestructiveMigration()
                                         .build()
                         INSTANCE = instance
                         instance

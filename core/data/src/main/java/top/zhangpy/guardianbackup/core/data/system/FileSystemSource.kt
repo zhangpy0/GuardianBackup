@@ -4,10 +4,11 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import java.io.File
-import top.zhangpy.guardianbackup.core.data.model.BackupManifest
 import top.zhangpy.guardianbackup.core.data.model.BackupRequest
 import top.zhangpy.guardianbackup.core.data.model.RestoreRequest
 import top.zhangpy.guardianbackup.core.data.model.RestoreResult
+import top.zhangpy.guardianbackup.core.domain.model.BackupManifest
+import top.zhangpy.guardianbackup.core.domain.model.BackupResult
 
 /**
  * 提供文件系统相关的数据源功能。 负责备份和恢复文件，包括照片、视频和用户指定的文件/文件夹。
@@ -33,12 +34,17 @@ class FileSystemSource(private val context: Context) {
      * 【已修改】执行备份操作。
      * @param request 包含源 Uri 列表和目标 Uri 的备份请求。
      */
-    fun backup(request: BackupRequest): Boolean {
+    fun backup(request: BackupRequest): BackupResult {
         // 1. 收集所有需要备份的文件 Uri
         val allUris = request.sourceUrisAndPath.keys
         if (allUris.isEmpty()) {
             Log.w(tag, "No files found to back up.")
-            return true // 没有文件也算成功
+            return BackupResult(
+                    isSuccess = true,
+                    destinationUri = request.destinationUri,
+                    sizeBytes = 0,
+                    fileCount = 0
+            )
         }
         Log.d(tag, "Starting backup for ${allUris.size} files.")
 
@@ -108,10 +114,26 @@ class FileSystemSource(private val context: Context) {
 
             Log.d(tag, "Backup successfully created at ${request.destinationUri}")
             Log.i(tag, "Manifest: $manifest")
-            return true
+
+            // 获取最终文件大小
+            val (_, size, _) = fileRepository.getMetadataFromUri(request.destinationUri)
+
+            return BackupResult(
+                    isSuccess = true,
+                    destinationUri = request.destinationUri,
+                    sizeBytes = size,
+                    fileCount = allUris.size,
+                    manifest = manifest
+            )
         } catch (e: Exception) {
             Log.e(tag, "Backup failed", e)
-            return false
+            return BackupResult(
+                    isSuccess = false,
+                    destinationUri = request.destinationUri,
+                    sizeBytes = 0,
+                    fileCount = 0,
+                    errorMessage = e.message
+            )
         } finally {
             // 5. 清理所有临时文件
             tempFilesToClean.forEach { it.delete() }

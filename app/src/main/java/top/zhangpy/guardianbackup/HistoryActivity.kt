@@ -1,12 +1,16 @@
 package top.zhangpy.guardianbackup
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import top.zhangpy.guardianbackup.ui.adapter.HistoryAdapter
+import top.zhangpy.guardianbackup.ui.dialog.BackupDetailsDialogFragment
 
 class HistoryActivity : AppCompatActivity() {
 
@@ -24,7 +28,29 @@ class HistoryActivity : AppCompatActivity() {
         val tvEmpty = findViewById<View>(R.id.tvEmpty)
 
         recyclerView.layoutManager = LinearLayoutManager(this)
-        adapter = HistoryAdapter()
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        adapter =
+                HistoryAdapter(
+                        onItemClick = { record ->
+                            BackupDetailsDialogFragment.newInstance(record)
+                                    .show(supportFragmentManager, "details")
+                        },
+                        onOpenClick = { record ->
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW)
+                                intent.setDataAndType(Uri.parse(record.filePath), "application/zip")
+                                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                startActivity(intent)
+                            } catch (e: Exception) {
+                                Toast.makeText(
+                                                this,
+                                                "No app found to open this file",
+                                                Toast.LENGTH_SHORT
+                                        )
+                                        .show()
+                            }
+                        }
+                )
         recyclerView.adapter = adapter
 
         viewModel.backupHistory.observe(this) { history ->

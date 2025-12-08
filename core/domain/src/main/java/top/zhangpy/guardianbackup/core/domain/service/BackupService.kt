@@ -1,6 +1,7 @@
 package top.zhangpy.guardianbackup.core.domain.service
 
 import android.net.Uri
+import top.zhangpy.guardianbackup.core.domain.model.BackupResult
 
 interface BackupService {
     suspend fun backup(
@@ -9,5 +10,5 @@ interface BackupService {
             key: String?,
             isFileKey: Boolean,
             onProgress: (String, Int, Int) -> Unit
-    ): Boolean
+    ): BackupResult
 }

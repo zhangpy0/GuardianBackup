@@ -19,7 +19,8 @@ class BackupRepositoryImpl(private val context: Context) : BackupRepository {
                         filePath = entity.filePath,
                         timestamp = entity.timestamp,
                         sizeBytes = entity.sizeBytes,
-                        fileCount = entity.fileCount
+                        fileCount = entity.fileCount,
+                        manifestJson = entity.manifestJson
                 )
             }
         }
@@ -32,7 +33,8 @@ class BackupRepositoryImpl(private val context: Context) : BackupRepository {
                         filePath = record.filePath,
                         timestamp = record.timestamp,
                         sizeBytes = record.sizeBytes,
-                        fileCount = record.fileCount
+                        fileCount = record.fileCount,
+                        manifestJson = record.manifestJson
                 )
         )
     }
@@ -44,7 +46,8 @@ class BackupRepositoryImpl(private val context: Context) : BackupRepository {
                         filePath = record.filePath,
                         timestamp = record.timestamp,
                         sizeBytes = record.sizeBytes,
-                        fileCount = record.fileCount
+                        fileCount = record.fileCount,
+                        manifestJson = record.manifestJson
                 )
         )
     }

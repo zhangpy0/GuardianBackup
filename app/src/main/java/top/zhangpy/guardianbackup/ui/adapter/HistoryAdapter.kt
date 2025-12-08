@@ -1,5 +1,6 @@
 package top.zhangpy.guardianbackup.ui.adapter
 
+import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,12 +12,16 @@ import java.util.Locale
 import top.zhangpy.guardianbackup.R
 import top.zhangpy.guardianbackup.core.domain.model.BackupRecord
 
-class HistoryAdapter(private var items: List<BackupRecord> = emptyList()) :
-        RecyclerView.Adapter<HistoryAdapter.ViewHolder>() {
+class HistoryAdapter(
+        private var items: List<BackupRecord> = emptyList(),
+        private val onItemClick: (BackupRecord) -> Unit,
+        private val onOpenClick: (BackupRecord) -> Unit
+) : RecyclerView.Adapter<HistoryAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvDate: TextView = view.findViewById(R.id.tvDate)
         val tvPath: TextView = view.findViewById(R.id.tvPath)
+        val btnOpen: TextView = view.findViewById(R.id.btnOpen)
         val tvCount: TextView = view.findViewById(R.id.tvCount)
         val tvSize: TextView = view.findViewById(R.id.tvSize)
     }
@@ -30,9 +35,16 @@ class HistoryAdapter(private var items: List<BackupRecord> = emptyList()) :
         val item = items[position]
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         holder.tvDate.text = sdf.format(Date(item.timestamp))
-        holder.tvPath.text = item.filePath
+
+        // Format URI for better display
+        val uri = Uri.parse(item.filePath)
+        holder.tvPath.text = uri.lastPathSegment ?: item.filePath
+
         holder.tvCount.text = "Files: ${item.fileCount}"
         holder.tvSize.text = "Size: ${formatSize(item.sizeBytes)}"
+
+        holder.itemView.setOnClickListener { onItemClick(item) }
+        holder.btnOpen.setOnClickListener { onOpenClick(item) }
     }
 
     override fun getItemCount(): Int = items.size

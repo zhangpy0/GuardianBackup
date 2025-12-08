@@ -14,15 +14,35 @@
         android:textStyle="bold"
         android:textSize="16sp"/>
 
-    <TextView
-        android:id="@+id/tvPath"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Path"
-        android:ellipsize="middle"
-        android:singleLine="true"
-        android:textSize="14sp"
-        android:textColor="@android:color/darker_gray"/>
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tvPath"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Path"
+            android:ellipsize="middle"
+            android:singleLine="true"
+            android:textSize="14sp"
+            android:textColor="@android:color/darker_gray"/>
+
+        <TextView
+            android:id="@+id/btnOpen"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="OPEN"
+            android:textColor="@android:color/holo_blue_dark"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:visibility="visible"
+            android:textStyle="bold"
+            android:textSize="12sp"/>
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
