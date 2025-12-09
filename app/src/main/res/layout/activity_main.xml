@@ -1,78 +1,192 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="16dp"
     tools:context=".MainActivity">
 
-    <Button
-        android:id="@+id/btnSelectDirectory"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="选择一个目录"
-        android:textAllCaps="false"
-        style="@style/Widget.AppCompat.Button.Colored"
-        />
-
-    <Button
-        android:id="@+id/btnSelectFile"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="选择一个文件"
-        android:textAllCaps="false"
-        style="@style/Widget.AppCompat.Button.Colored"
-        />
-
-    <TextView
-        android:id="@+id/tvSelectedDirectory"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="尚未选择目录"
-        android:padding="8dp"
-        android:background="#F0F0F0"
-        android:gravity="center"
-        />
+        android:orientation="vertical"
+        android:padding="32dp"
+        android:gravity="center_horizontal">
 
-    <TextView
-        android:id="@+id/tvSelectedFile"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="尚未选择文件"
-        android:padding="8dp"
-        android:background="#F0F0F0"
-        android:gravity="center"
-        />
+        <Button
+            android:id="@+id/btnViewHistory"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="View Backup History"
+            android:layout_gravity="end"/>
 
-    <Button
-        android:id="@+id/btnBackup"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="备份目录"
-        android:textAllCaps="false"
-        />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Encryption Key"
+            android:textStyle="bold"
+            android:layout_marginTop="8dp"/>
 
-    <Button
-        android:id="@+id/btnRestore"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="恢复文件"
-        android:textAllCaps="false"
-        />
+        <RadioGroup
+            android:id="@+id/rgKeyType"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <RadioButton
+                android:id="@+id/rbDefaultKey"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Default Key"
+                android:checked="true"/>
+            <RadioButton
+                android:id="@+id/rbCustomKey"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Custom Key"/>
+        </RadioGroup>
 
-    <Button
-        android:id="@+id/btnListFiles"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="列出目录中的文件"
-        android:textAllCaps="false"
-        />
+        <LinearLayout
+            android:id="@+id/layoutCustomKey"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:padding="8dp"
+            android:background="#FAFAFA">
 
-</LinearLayout>
+            <EditText
+                android:id="@+id/etCustomKey"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Enter Password"
+                android:inputType="textPassword"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="OR Select Key File:"
+                android:layout_marginTop="8dp"/>
+
+            <Button
+                android:id="@+id/btnSelectKeyFile"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Select Key File"/>
+
+            <Button
+                android:id="@+id/btnCreateKeyFile"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Create Key File"
+                android:layout_marginStart="8dp"/>
+            
+            <TextView
+                android:id="@+id/tvSelectedKeyFile"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="No file selected"
+                android:textSize="12sp"/>
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Operations"
+            android:textStyle="bold"
+            android:layout_marginTop="16dp"/>
+
+        <Button
+            android:id="@+id/btnSelectDirectory"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Select Working Directory (Source/Dest)"
+            android:textAllCaps="false"/>
+
+        <TextView
+            android:id="@+id/tvSelectedDirectory"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="No Directory Selected"
+            android:gravity="center"
+            android:padding="8dp"
+            android:background="#F0F0F0"/>
+
+        <Button
+            android:id="@+id/btnFilter"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Filter Files (Optional)"
+            android:textAllCaps="false"
+            android:layout_marginTop="8dp"/>
+
+        <TextView
+            android:id="@+id/tvFilterStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="No filter applied - backup all files"
+            android:gravity="center"
+            android:textSize="12sp"
+            android:textColor="#666666"/>
+
+        <Button
+            android:id="@+id/btnSelectBackupFile"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Select Backup File (For Restore)"
+            android:textAllCaps="false"
+            android:layout_marginTop="8dp"/>
+
+        <TextView
+            android:id="@+id/tvSelectedBackupFile"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="No File Selected"
+            android:gravity="center"
+            android:padding="8dp"
+            android:background="#F0F0F0"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="24dp"
+            android:gravity="center">
+
+            <Button
+                android:id="@+id/btnBackup"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Start Backup"
+                android:layout_marginEnd="16dp"/>
+
+            <Button
+                android:id="@+id/btnRestore"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Start Restore"/>
+        </LinearLayout>
+        
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:layout_marginTop="16dp"/>
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:text="Ready"/>
+
+        <TextView
+                android:id="@+id/tvProgress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:text=""/>
+
+    </LinearLayout>
+</ScrollView>

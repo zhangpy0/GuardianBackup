@@ -3,6 +3,7 @@ package top.zhangpy.guardianbackup.core.data.model
 import android.content.Context
 import android.net.Uri
 import top.zhangpy.guardianbackup.core.data.system.FileSystemSource
+import top.zhangpy.guardianbackup.core.domain.model.BackupResult
 
 /**
  * 使用建造者模式来配置和创建 BackupRequest
@@ -15,19 +16,17 @@ class BackupRequestBuilder(private val context: Context) {
     private var isZipped: Boolean = false
     private var encryptionAlgorithm: String? = null
     private var password: CharArray? = null
+    private var sourcePath: String? = null
+    private var sourceDirName: String? = null
     private var progressCallback: (String, Int, Int) -> Unit = { _, _, _ -> }
 
-    /**
-     * 设置要备份的源文件/文件夹的 Uri 列表
-     */
+    /** 设置要备份的源文件/文件夹的 Uri 列表 */
     fun sourceUrisAndPath(uris: Map<Uri, String>): BackupRequestBuilder {
         this.sourceUrisAndPath = uris
         return this // 返回自身以实现链式调用
     }
 
-    /**
-     * 设置备份文件的目标存储位置 Uri
-     */
+    /** 设置备份文件的目标存储位置 Uri */
     fun destinationUri(uri: Uri): BackupRequestBuilder {
         this.destinationUri = uri
         return this
@@ -54,18 +53,25 @@ class BackupRequestBuilder(private val context: Context) {
         return this
     }
 
-    /**
-     * 设置备份进度的回调函数
-     */
-    fun onProgress(callback: (fileName: String, current: Int, total: Int) -> Unit): BackupRequestBuilder {
+    fun sourcePath(path: String?): BackupRequestBuilder {
+        this.sourcePath = path
+        return this
+    }
+
+    fun sourceDirName(name: String?): BackupRequestBuilder {
+        this.sourceDirName = name
+        return this
+    }
+
+    /** 设置备份进度的回调函数 */
+    fun onProgress(
+            callback: (fileName: String, current: Int, total: Int) -> Unit
+    ): BackupRequestBuilder {
         this.progressCallback = callback
         return this
     }
 
-    /**
-     * 验证配置并构建最终的 BackupRequest 对象。
-     * 类似于您示例中的 .pack()
-     */
+    /** 验证配置并构建最终的 BackupRequest 对象。 类似于您示例中的 .pack() */
     fun build(): BackupRequest {
         // 进行必要的参数校验
         if (sourceUrisAndPath.isEmpty()) {
@@ -79,13 +85,15 @@ class BackupRequestBuilder(private val context: Context) {
         }
 
         return BackupRequest(
-            context = context, // 传递上下文
-            sourceUrisAndPath = this.sourceUrisAndPath,
-            destinationUri = this.destinationUri!!,
-            isZipped = this.isZipped,
-            encryptionAlgorithm = this.encryptionAlgorithm,
-            password = this.password,
-            progressCallback = this.progressCallback
+                context = context, // 传递上下文
+                sourceUrisAndPath = this.sourceUrisAndPath,
+                destinationUri = this.destinationUri!!,
+                isZipped = this.isZipped,
+                encryptionAlgorithm = this.encryptionAlgorithm,
+                password = this.password,
+                sourcePath = this.sourcePath,
+                sourceDirName = this.sourceDirName,
+                progressCallback = this.progressCallback
         )
     }
 }
@@ -98,13 +106,15 @@ class BackupRequestBuilder(private val context: Context) {
  * @param progressCallback 一个回调函数，用于报告备份进度 (当前处理的文件名, 当前文件索引, 总文件数)
  */
 data class BackupRequest(
-    internal val context: Context, // 内部使用，用于执行操作
-    val sourceUrisAndPath: Map<Uri, String>,
-    val destinationUri: Uri,
-    val isZipped: Boolean,
-    val encryptionAlgorithm: String?,
-    val password: CharArray?,
-    val progressCallback: (String, Int, Int) -> Unit
+        internal val context: Context, // 内部使用，用于执行操作
+        val sourceUrisAndPath: Map<Uri, String>,
+        val destinationUri: Uri,
+        val isZipped: Boolean,
+        val encryptionAlgorithm: String?,
+        val password: CharArray?,
+        val sourcePath: String? = null,
+        val sourceDirName: String? = null,
+        val progressCallback: (String, Int, Int) -> Unit
 ) {
     // 为了简化，我们重写 equals 和 hashCode，因为 CharArray 的默认比较是基于引用的
     override fun equals(other: Any?): Boolean {
@@ -128,11 +138,8 @@ data class BackupRequest(
     }
 }
 
-/**
- * 为 BackupRequest 添加一个执行备份的扩展函数
- * 这就是您期望的 .backUp()
- */
-fun BackupRequest.execute(): Boolean {
+/** 为 BackupRequest 添加一个执行备份的扩展函数 这就是您期望的 .backUp() */
+fun BackupRequest.execute(): BackupResult {
     // 将具体的备份逻辑委托给 FileSystemSource
     return FileSystemSource(context).backup(this)
 }
@@ -140,7 +147,10 @@ fun BackupRequest.execute(): Boolean {
 class RestoreRequestBuilder(private val context: Context) {
     private var sourceBackupUri: Uri? = null
     private var destinationDirectoryUri: Uri? = null
+    private var encryptionAlgorithm: String? = null
     private var password: CharArray? = null
+    private var sourcePath: String? = null
+    private var sourceDirName: String? = null
     private var progressCallback: (String, Int, Int) -> Unit = { _, _, _ -> }
 
     fun source(uri: Uri): RestoreRequestBuilder {
@@ -158,18 +168,24 @@ class RestoreRequestBuilder(private val context: Context) {
         return this
     }
 
-    fun onProgress(callback: (fileName: String, current: Int, total: Int) -> Unit): RestoreRequestBuilder {
+    fun onProgress(
+            callback: (fileName: String, current: Int, total: Int) -> Unit
+    ): RestoreRequestBuilder {
         this.progressCallback = callback
         return this
     }
 
     fun build(): RestoreRequest {
         return RestoreRequest(
-            context = context,
-            sourceBackupUri = sourceBackupUri ?: throw IllegalArgumentException("Source backup URI must be set."),
-            destinationDirectoryUri = destinationDirectoryUri ?: throw IllegalArgumentException("Destination directory URI must be set."),
-            password = password,
-            progressCallback = progressCallback
+                context = context,
+                sourceBackupUri = sourceBackupUri
+                                ?: throw IllegalArgumentException("Source backup URI must be set."),
+                destinationDirectoryUri = destinationDirectoryUri
+                                ?: throw IllegalArgumentException(
+                                        "Destination directory URI must be set."
+                                ),
+                password = password,
+                progressCallback = progressCallback
         )
     }
 }
@@ -181,11 +197,11 @@ class RestoreRequestBuilder(private val context: Context) {
  * @param progressCallback 一个回调函数，用于报告恢复进度 (当前处理的文件名, 当前文件索引, 总文件数)
  */
 data class RestoreRequest(
-    internal val context: Context,
-    val sourceBackupUri: Uri,
-    val destinationDirectoryUri: Uri,
-    val password: CharArray?,
-    val progressCallback: (String, Int, Int) -> Unit
+        internal val context: Context,
+        val sourceBackupUri: Uri,
+        val destinationDirectoryUri: Uri,
+        val password: CharArray?,
+        val progressCallback: (String, Int, Int) -> Unit
 )
 
 fun RestoreRequest.execute(): RestoreResult {
@@ -201,35 +217,9 @@ fun RestoreRequest.execute(): RestoreResult {
  * @param corruptedFiles 恢复期间发现的损坏（校验和不匹配）的文件列表
  */
 data class RestoreResult(
-    val isSuccess: Boolean,
-    val restoredFilesCount: Int = 0,
-    val totalFilesCount: Int = 0,
-    val errorMessage: String? = null,
-    val corruptedFiles: List<String> = emptyList()
-)
-
-/**
- * 用于存储在备份包内的文件元数据
- * @param originalPath 文件的原始绝对路径
- * @param pathInArchive 文件在压缩包内的相对路径
- * @param size 文件大小
- * @param lastModified 最后修改时间
- * @param sha256Checksum 文件的 SHA-256 校验和，用于保证完整性
- */
-data class FileMetadata(
-    val originalPath: String,
-    val pathInArchive: String,
-    val size: Long,
-    val lastModified: Long,
-    val sha256Checksum: String
-)
-
-/**
- * 包含所有文件元数据的清单
- */
-data class BackupManifest(
-    val dirName: String,
-    val appVersion: String, // 用于未来可能的迁移
-    val creationDate: Long,
-    val files: List<FileMetadata>
+        val isSuccess: Boolean,
+        val restoredFilesCount: Int = 0,
+        val totalFilesCount: Int = 0,
+        val errorMessage: String? = null,
+        val corruptedFiles: List<String> = emptyList()
 )
