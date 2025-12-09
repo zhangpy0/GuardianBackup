@@ -7,6 +7,7 @@ data class BackupResult(
         val destinationUri: Uri,
         val sizeBytes: Long,
         val fileCount: Int,
+        val displayPath: String? = null,
         val manifest: BackupManifest? = null,
         val errorMessage: String? = null
 )

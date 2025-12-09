@@ -342,7 +342,15 @@ class MainActivity : AppCompatActivity() {
             val destinationUri = fileSystemSource.getNewFileUriInDownloads(fileName)
 
             if (destinationUri != null) {
-                viewModel.backup(filteredMap, destinationUri, key, isFileKey)
+                val sourcePath = selectedDirectoryUri?.path // Or use a utils to get readable path
+                viewModel.backup(
+                        filteredMap,
+                        destinationUri,
+                        key,
+                        isFileKey,
+                        sourcePath = sourcePath,
+                        sourceDirName = dirName
+                )
             } else {
                 Toast.makeText(
                                 this,

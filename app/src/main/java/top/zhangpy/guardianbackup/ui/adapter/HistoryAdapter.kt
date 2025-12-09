@@ -37,8 +37,12 @@ class HistoryAdapter(
         holder.tvDate.text = sdf.format(Date(item.timestamp))
 
         // Format URI for better display
-        val uri = Uri.parse(item.filePath)
-        holder.tvPath.text = uri.lastPathSegment ?: item.filePath
+        if (!item.displayPath.isNullOrEmpty()) {
+            holder.tvPath.text = item.displayPath
+        } else {
+            val uri = Uri.parse(item.filePath)
+            holder.tvPath.text = uri.lastPathSegment ?: item.filePath
+        }
 
         holder.tvCount.text = "Files: ${item.fileCount}"
         holder.tvSize.text = "Size: ${formatSize(item.sizeBytes)}"

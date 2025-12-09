@@ -40,6 +40,8 @@ class ArchiveService(
     fun createArchiveWithManifest(
             filesMap: Map<Uri, String>,
             zipFile: File,
+            sourcePath: String? = null,
+            dirName: String? = null,
             progressCallback: (String, Int, Int) -> Unit
     ): BackupManifest {
         val metadataList = mutableListOf<FileMetadata>()
@@ -114,9 +116,12 @@ class ArchiveService(
             }
 
             // 添加 manifest 文件
+            val manifestDirName = dirName ?: zipFile.name.removeSuffix(".zip")
+            val manifestSourcePath = sourcePath ?: ""
             val manifest =
                     BackupManifest(
-                            zipFile.name.removeSuffix(".zip"),
+                            manifestDirName,
+                            manifestSourcePath,
                             "1.0",
                             System.currentTimeMillis(),
                             metadataList

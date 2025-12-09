@@ -17,10 +17,20 @@ class BackupUseCase(
                 destinationUri: Uri,
                 key: String?,
                 isFileKey: Boolean,
+                sourcePath: String? = null,
+                sourceDirName: String? = null,
                 onProgress: (String, Int, Int) -> Unit
         ): Boolean {
                 val result =
-                        backupService.backup(sourceUris, destinationUri, key, isFileKey, onProgress)
+                        backupService.backup(
+                                sourceUris,
+                                destinationUri,
+                                key,
+                                isFileKey,
+                                sourcePath,
+                                sourceDirName,
+                                onProgress
+                        )
                 if (result.isSuccess) {
                         // Save history
                         val record =
@@ -29,6 +39,7 @@ class BackupUseCase(
                                         timestamp = System.currentTimeMillis(),
                                         sizeBytes = result.sizeBytes,
                                         fileCount = result.fileCount,
+                                        displayPath = result.displayPath,
                                         manifestJson =
                                                 if (result.manifest != null)
                                                         gson.toJson(result.manifest)

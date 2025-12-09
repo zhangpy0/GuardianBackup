@@ -34,7 +34,10 @@ class BackupDetailsDialogFragment : DialogFragment() {
             try {
                 val manifest = Gson().fromJson(manifestJson, BackupManifest::class.java)
                 val details = buildString {
-                    append("Source: ${manifest.dirName}\n")
+                    val displayName =
+                            if (manifest.sourcePath.isNotEmpty()) manifest.sourcePath
+                            else manifest.dirName
+                    append("Source: $displayName\n")
                     append("Created: ${java.util.Date(manifest.creationDate)}\n")
                     append("App Version: ${manifest.appVersion}\n\n")
                     append("Files (${manifest.files.size}):\n")

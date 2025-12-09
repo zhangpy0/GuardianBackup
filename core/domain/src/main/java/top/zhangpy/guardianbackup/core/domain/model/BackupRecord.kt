@@ -6,5 +6,6 @@ data class BackupRecord(
         val timestamp: Long,
         val sizeBytes: Long,
         val fileCount: Int,
+        val displayPath: String? = null,
         val manifestJson: String? = null
 )

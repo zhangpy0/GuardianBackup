@@ -69,6 +69,8 @@ class FileSystemSource(private val context: Context) {
                         archiveService.createArchiveWithManifest(
                                 request.sourceUrisAndPath,
                                 tempZipFile,
+                                request.sourcePath,
+                                request.sourceDirName
                         ) { fileName, current, total ->
                             request.progressCallback(fileName, current, total)
                         }
@@ -116,13 +118,14 @@ class FileSystemSource(private val context: Context) {
             Log.i(tag, "Manifest: $manifest")
 
             // 获取最终文件大小
-            val (_, size, _) = fileRepository.getMetadataFromUri(request.destinationUri)
+            val (name, size, _) = fileRepository.getMetadataFromUri(request.destinationUri)
 
             return BackupResult(
                     isSuccess = true,
                     destinationUri = request.destinationUri,
                     sizeBytes = size,
                     fileCount = allUris.size,
+                    displayPath = name,
                     manifest = manifest
             )
         } catch (e: Exception) {

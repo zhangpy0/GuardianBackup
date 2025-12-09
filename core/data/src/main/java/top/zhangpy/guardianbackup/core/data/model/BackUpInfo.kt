@@ -16,11 +16,11 @@ class BackupRequestBuilder(private val context: Context) {
     private var isZipped: Boolean = false
     private var encryptionAlgorithm: String? = null
     private var password: CharArray? = null
+    private var sourcePath: String? = null
+    private var sourceDirName: String? = null
     private var progressCallback: (String, Int, Int) -> Unit = { _, _, _ -> }
 
-    /**
-     * 设置要备份的源文件/文件夹的 Uri 列表
-     */
+    /** 设置要备份的源文件/文件夹的 Uri 列表 */
     fun sourceUrisAndPath(uris: Map<Uri, String>): BackupRequestBuilder {
         this.sourceUrisAndPath = uris
         return this // 返回自身以实现链式调用
@@ -53,6 +53,16 @@ class BackupRequestBuilder(private val context: Context) {
         return this
     }
 
+    fun sourcePath(path: String?): BackupRequestBuilder {
+        this.sourcePath = path
+        return this
+    }
+
+    fun sourceDirName(name: String?): BackupRequestBuilder {
+        this.sourceDirName = name
+        return this
+    }
+
     /** 设置备份进度的回调函数 */
     fun onProgress(
             callback: (fileName: String, current: Int, total: Int) -> Unit
@@ -81,6 +91,8 @@ class BackupRequestBuilder(private val context: Context) {
                 isZipped = this.isZipped,
                 encryptionAlgorithm = this.encryptionAlgorithm,
                 password = this.password,
+                sourcePath = this.sourcePath,
+                sourceDirName = this.sourceDirName,
                 progressCallback = this.progressCallback
         )
     }
@@ -100,6 +112,8 @@ data class BackupRequest(
         val isZipped: Boolean,
         val encryptionAlgorithm: String?,
         val password: CharArray?,
+        val sourcePath: String? = null,
+        val sourceDirName: String? = null,
         val progressCallback: (String, Int, Int) -> Unit
 ) {
     // 为了简化，我们重写 equals 和 hashCode，因为 CharArray 的默认比较是基于引用的
@@ -133,7 +147,10 @@ fun BackupRequest.execute(): BackupResult {
 class RestoreRequestBuilder(private val context: Context) {
     private var sourceBackupUri: Uri? = null
     private var destinationDirectoryUri: Uri? = null
+    private var encryptionAlgorithm: String? = null
     private var password: CharArray? = null
+    private var sourcePath: String? = null
+    private var sourceDirName: String? = null
     private var progressCallback: (String, Int, Int) -> Unit = { _, _, _ -> }
 
     fun source(uri: Uri): RestoreRequestBuilder {

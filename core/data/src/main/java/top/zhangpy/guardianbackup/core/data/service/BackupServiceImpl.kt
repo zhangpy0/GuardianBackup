@@ -19,6 +19,8 @@ class BackupServiceImpl(private val context: Context) : BackupService {
             destinationUri: Uri,
             key: String?,
             isFileKey: Boolean,
+            sourcePath: String?,
+            sourceDirName: String?,
             onProgress: (String, Int, Int) -> Unit
     ): BackupResult {
         return withContext(Dispatchers.IO) {
@@ -41,6 +43,8 @@ class BackupServiceImpl(private val context: Context) : BackupService {
                             .sourceUrisAndPath(sourceUris)
                             .destinationUri(destinationUri)
                             .zip(true)
+                            .sourcePath(sourcePath)
+                            .sourceDirName(sourceDirName)
                             .onProgress(onProgress)
 
             if (algorithm != null && passwordChars != null) {

@@ -52,17 +52,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             sourceUris: Map<Uri, String>,
             destinationUri: Uri,
             key: String?,
-            isFileKey: Boolean
+            isFileKey: Boolean,
+            sourcePath: String? = null,
+            sourceDirName: String? = null
     ) {
         _isLoading.value = true
         _statusMessage.value = "Starting Backup..."
         viewModelScope.launch {
             try {
                 val success =
-                        backupUseCase(sourceUris, destinationUri, key, isFileKey) {
-                                fileName,
-                                current,
-                                total ->
+                        backupUseCase(
+                                sourceUris,
+                                destinationUri,
+                                key,
+                                isFileKey,
+                                sourcePath,
+                                sourceDirName
+                        ) { fileName, current, total ->
                             _progress.postValue("Backing up: $fileName ($current/$total)")
                         }
                 if (success) {

@@ -9,6 +9,8 @@ interface BackupService {
             destinationUri: Uri,
             key: String?,
             isFileKey: Boolean,
+            sourcePath: String? = null,
+            sourceDirName: String? = null,
             onProgress: (String, Int, Int) -> Unit
     ): BackupResult
 }
