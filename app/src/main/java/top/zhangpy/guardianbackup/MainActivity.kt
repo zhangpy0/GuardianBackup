@@ -64,7 +64,7 @@ class MainActivity : AppCompatActivity() {
                     if (file == null || !file.canRead() || !file.canWrite()) {
                         Toast.makeText(
                                         this,
-                                        "Cannot read/write selected directory.",
+                                        "不能读写此目录！",
                                         Toast.LENGTH_LONG
                                 )
                                 .show()
@@ -102,7 +102,7 @@ class MainActivity : AppCompatActivity() {
                         if (validation.isLegacyFormat) {
                             Toast.makeText(
                                             this,
-                                            "Legacy key file selected (valid).",
+                                            "已选择密钥文件（有效）",
                                             Toast.LENGTH_SHORT
                                     )
                                     .show()
@@ -110,7 +110,7 @@ class MainActivity : AppCompatActivity() {
                     } else {
                         Toast.makeText(
                                         this,
-                                        "Invalid key file: ${validation.message}",
+                                        "无效的密钥文件: ${validation.message}",
                                         Toast.LENGTH_LONG
                                 )
                                 .show()
@@ -128,18 +128,19 @@ class MainActivity : AppCompatActivity() {
                         if (key != null) {
                             Toast.makeText(
                                             this,
-                                            "Key file created successfully!",
+                                            "成功生成密钥文件!",
                                             Toast.LENGTH_SHORT
                                     )
                                     .show()
                             selectedKeyFileUri = uri
+
                             tvSelectedKeyFile.text = uri.path
                             // Set text field as well for visual confirmation (optional)
                             etCustomKey.setText(
                                     key
                             ) // Not putting into etCustomKey to avoid confusion, file is enough
                         } else {
-                            Toast.makeText(this, "Failed to write key file.", Toast.LENGTH_SHORT)
+                            Toast.makeText(this, "写入密钥文件失败！", Toast.LENGTH_SHORT)
                                     .show()
                         }
                     }
@@ -300,13 +301,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun performBackup() {
         if (selectedDirectoryUri == null) {
-            Toast.makeText(this, "Please select a source directory", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "请选择一个源目录", Toast.LENGTH_SHORT).show()
             return
         }
 
         val (key, isFileKey) = getKeyConfig()
         if (key == null) {
-            Toast.makeText(this, "Please enter a key or select a key file", Toast.LENGTH_SHORT)
+            Toast.makeText(this, "请输入一个密钥或者选择密钥文件", Toast.LENGTH_SHORT)
                     .show()
             return
         }
@@ -315,18 +316,18 @@ class MainActivity : AppCompatActivity() {
         val fileSystemSource = FileSystemSource(this)
         val filesMap = fileSystemSource.listFilesWithRelativePaths(selectedDirectoryUri!!)
         if (filesMap.isEmpty()) {
-            Toast.makeText(this, "Selected directory is empty", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "所选文件夹为空！", Toast.LENGTH_SHORT).show()
             return
         }
 
         // Apply Filter
         val filteredMap = fileFilterService.filterFiles(filesMap, currentFileFilter)
         if (filteredMap.isEmpty()) {
-            Toast.makeText(this, "No files matched the filter criteria.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "没有文件满足过滤条件！", Toast.LENGTH_LONG).show()
             return
         }
 
-        Toast.makeText(this, "Backing up ${filteredMap.size} files...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "正在备份 ${filteredMap.size} 个文件中...", Toast.LENGTH_SHORT).show()
 
         // Prepare destination file (Public Downloads)
         // val desFile = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
@@ -354,7 +355,7 @@ class MainActivity : AppCompatActivity() {
             } else {
                 Toast.makeText(
                                 this,
-                                "Failed to create destination file in Downloads",
+                                "在下载目录创建目标备份文件失败！",
                                 Toast.LENGTH_SHORT
                         )
                         .show()
@@ -370,23 +371,23 @@ class MainActivity : AppCompatActivity() {
             }
             */
         } catch (e: Exception) {
-            Toast.makeText(this, "Error creating file: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "创建文件错误: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun performRestore() {
         if (selectedBackupFileUri == null) {
-            Toast.makeText(this, "Please select a backup file", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "请选择一个备份文件", Toast.LENGTH_SHORT).show()
             return
         }
         if (selectedDirectoryUri == null) {
-            Toast.makeText(this, "Please select a destination directory", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "请选择目标目录", Toast.LENGTH_SHORT).show()
             return
         }
 
         val (key, isFileKey) = getKeyConfig()
         if (key == null) {
-            Toast.makeText(this, "Please enter a key or select a key file", Toast.LENGTH_SHORT)
+            Toast.makeText(this, "请输入密钥或者选择密钥文件", Toast.LENGTH_SHORT)
                     .show()
             return
         }

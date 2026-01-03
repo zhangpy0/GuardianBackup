@@ -8,7 +8,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="File Types"
+        android:text="选择文件类型"
         android:textStyle="bold"
         android:layout_marginBottom="8dp"/>
 
@@ -20,13 +20,13 @@
             android:id="@+id/cbImages"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Images"
+            android:text="图片"
             android:layout_weight="1"/>
         <CheckBox
             android:id="@+id/cbVideos"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Videos"
+            android:text="视频"
             android:layout_weight="1"/>
     </LinearLayout>
 
@@ -38,20 +38,20 @@
             android:id="@+id/cbAudio"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Audio"
+            android:text="音频"
             android:layout_weight="1"/>
         <CheckBox
             android:id="@+id/cbDocuments"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Docs"
+            android:text="文档"
             android:layout_weight="1"/>
     </LinearLayout>
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="File Name Pattern (Regex)"
+        android:text="文件名组合 (使用正则)"
         android:textStyle="bold"
         android:layout_marginTop="16dp"
         android:layout_marginBottom="8dp"/>
@@ -60,13 +60,13 @@
         android:id="@+id/etNamePattern"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="e.g. .*backup.*"
+        android:hint="例如 .*backup.*"
         android:inputType="text"/>
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="File Size"
+        android:text="文件大小"
         android:textStyle="bold"
         android:layout_marginTop="16dp"
         android:layout_marginBottom="8dp"/>
@@ -82,7 +82,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:hint="Min"
+            android:hint="最小"
             android:inputType="number"/>
             
         <TextView
@@ -96,7 +96,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:hint="Max"
+            android:hint="最大"
             android:inputType="number"/>
 
         <Spinner
