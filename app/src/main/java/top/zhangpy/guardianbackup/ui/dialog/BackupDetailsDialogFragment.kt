@@ -56,7 +56,7 @@ class BackupDetailsDialogFragment : DialogFragment() {
             }
         }
 
-        builder.setPositiveButton("Close", null)
+        builder.setPositiveButton("关闭", null)
 
         return builder.create()
     }

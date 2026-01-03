@@ -36,12 +36,12 @@ class FilterDialogFragment(
 
         builder.setView(view)
                 .setTitle("Filter Files")
-                .setPositiveButton("Apply") { _, _ ->
+                .setPositiveButton("应用") { _, _ ->
                     val filter = createFilterFromInputs()
                     onFilterApplied(filter)
                 }
-                .setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
-                .setNeutralButton("Reset") { _, _ -> onFilterApplied(FileFilter.NO_FILTER) }
+                .setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
+                .setNeutralButton("重置") { _, _ -> onFilterApplied(FileFilter.NO_FILTER) }
 
         return builder.create()
     }

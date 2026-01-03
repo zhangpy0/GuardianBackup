@@ -52,7 +52,7 @@ class ArchiveService(
                 // **新增：** 检查条目类型
                 val docFile = DocumentFile.fromSingleUri(context, uri)
                 if (docFile == null) {
-                    Log.w(tag, "Could not get DocumentFile for $uri, skipping")
+                    Log.w(tag, "拿不到 $uri 中的文件, 正在跳过")
                     return@forEachIndexed
                 }
 
@@ -66,9 +66,9 @@ class ArchiveService(
                     try {
                         zos.putNextEntry(ZipEntry(dirZipPath))
                         zos.closeEntry()
-                        Log.d(tag, "Added empty directory to zip: $dirZipPath")
+                        Log.d(tag, "添加空目录来打包: $dirZipPath")
                     } catch (e: IOException) {
-                        Log.w(tag, "Failed to add empty directory $dirZipPath", e)
+                        Log.w(tag, "在 $dirZipPath 添加空目录失败", e)
                     }
                 } else {
                     // **原有逻辑：** 是文件，正常处理
@@ -196,9 +196,9 @@ class ArchiveService(
                                         manifest.dirName + "/" + entryName
                                 )
                         if (targetDir == null) {
-                            Log.e(tag, "Could not create directory: $entryName")
+                            Log.e(tag, "不能创建目录: $entryName")
                         } else {
-                            Log.d(tag, "Created directory from zip entry: $entryName")
+                            Log.d(tag, "从压缩包中创建目录: $entryName")
                         }
                         entry = zis.nextEntry
                         continue
@@ -208,7 +208,7 @@ class ArchiveService(
 
                     val metadata = checksumMap[entryName]
                     if (metadata == null) {
-                        Log.w(tag, "File '$entryName' found in zip but not in manifest. Skipping.")
+                        Log.w(tag, "压缩包中文件 '$entryName' 不在清单上. 跳过.")
                         entry = zis.nextEntry
                         continue
                     }
@@ -233,7 +233,7 @@ class ArchiveService(
                             if (targetParentDir == null) {
                                 Log.e(
                                         tag,
-                                        "Could not find or create parent directory for '$entryName'"
+                                        "不能为 '$entryName' 找到或创建父目录"
                                 )
                                 corruptedFiles.add(entryName)
                             } else {
@@ -244,7 +244,7 @@ class ArchiveService(
                                                 ?: targetParentDir.createFile("*/*", fileName)
 
                                 if (targetFile == null) {
-                                    Log.e(tag, "Failed to create file in destination: '$entryName'")
+                                    Log.e(tag, "在 '$entryName' 创建文件失败")
                                     corruptedFiles.add(entryName)
                                 } else {
                                     // 7. 写入最终文件
@@ -265,7 +265,7 @@ class ArchiveService(
                             corruptedFiles.add(entryName)
                         }
                     } catch (e: Exception) {
-                        Log.e(tag, "Error processing entry '$entryName'", e)
+                        Log.e(tag, "在 '$entryName' 处理发生错误", e)
                         corruptedFiles.add(entryName)
                     } finally {
                         tempOutputFile.delete() // 确保临时文件被删除

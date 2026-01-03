@@ -10,7 +10,7 @@
         android:id="@+id/tvDate"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Date"
+        android:text="日期"
         android:textStyle="bold"
         android:textSize="16sp"/>
 
@@ -25,7 +25,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Path"
+            android:text="路径"
             android:ellipsize="middle"
             android:singleLine="true"
             android:textSize="14sp"
@@ -35,7 +35,7 @@
             android:id="@+id/btnOpen"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="OPEN"
+            android:text="打开"
             android:textColor="@android:color/holo_blue_dark"
             android:paddingStart="8dp"
             android:paddingEnd="8dp"
@@ -55,14 +55,14 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Files: 0"
+            android:text="文件: 0"
             android:textSize="12sp"/>
 
         <TextView
             android:id="@+id/tvSize"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Size: 0B"
+            android:text="大小: 0B"
             android:textSize="12sp"/>
     </LinearLayout>
 
